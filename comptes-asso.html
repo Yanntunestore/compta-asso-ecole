@@ -316,6 +316,14 @@
     .fab.fab-right{right:calc(50% - 380px + 20px);}
     .fab.fab-left{left:calc(50% - 380px + 20px);}
   }
+  /* responsive: petit téléphone — empiler les champs pour éviter tout chevauchement */
+  @media (max-width:480px){
+    .field-row{flex-direction:column;}
+    .field-row .field{width:100%;flex-basis:auto;}
+    .dep-row{flex-direction:column;align-items:stretch;}
+    .dep-row .field{width:100%;flex-basis:auto;}
+    .dep-row .icon-btn{align-self:flex-end;margin-top:-4px;}
+  }
 </style>
 </head>
 <body>
@@ -758,6 +766,7 @@ auth.onAuthStateChanged(user => {
     listenAdherents();
     listenDons();
     listenFactures();
+    updateFabVisibility(document.querySelector('.tab-btn.active').dataset.view);
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
@@ -826,6 +835,10 @@ function isAdherentInYear(a, year) {
 }
 
 // ---------- Tabs ----------
+function updateFabVisibility(view) {
+  document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours') ? 'none' : 'flex';
+  document.getElementById('fab-menu').style.display = (view === 'view-actions' || view === 'view-adhesion') ? 'flex' : 'none';
+}
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -834,8 +847,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById(btn.dataset.view).classList.add('active');
     document.getElementById('view-title').textContent = btn.textContent.trim();
     const view = btn.dataset.view;
-    document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours') ? 'none' : 'flex';
-    document.getElementById('fab-menu').style.display = (view === 'view-actions' || view === 'view-adhesion') ? 'flex' : 'none';
+    updateFabVisibility(view);
     if (view === 'view-ag' && agSchoolYear === null) openAgYearModal();
   });
 });
