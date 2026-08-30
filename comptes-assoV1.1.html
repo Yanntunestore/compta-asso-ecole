@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Carnet de comptes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#122a45;
+    --ink-soft:#3c5876;
+    --paper:#eae6d4;
+    --paper-raised:#ffffff;
+    --line:#c7c2a6;
+    --gold:#96690f;
+    --gold-soft:#f3dfa8;
+    --brick:#8f2f1f;
+    --brick-soft:#f4cec2;
+    --green:#1f5c3a;
+    --green-soft:#c9e6d3;
+    --radius:14px;
+    --shadow:0 1px 2px rgba(22,50,79,0.08), 0 4px 14px rgba(22,50,79,0.1);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+    padding-bottom:78px;
+  }
+  h1,h2,h3{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    margin:0;
+    color:var(--ink);
+  }
+  .num{font-family:'IBM Plex Mono',monospace; font-weight:600; font-variant-numeric:tabular-nums;}
+  .pos{color:var(--green);}
+  .neg{color:var(--brick);}
+
+  /* --- Login --- */
+  #login-screen{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:32px 28px;
+    width:100%;
+    max-width:360px;
+    text-align:center;
+  }
+  .login-card .mark{
+    width:54px;height:54px;border-radius:12px;
+    background:var(--ink);
+    color:var(--gold-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-size:26px;font-weight:700;
+    margin:0 auto 16px;
+  }
+  .login-card h1{font-size:22px;margin-bottom:4px;}
+  .login-card p.sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 22px;}
+  .field{text-align:left;margin-bottom:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:500;}
+  .field input, .field textarea{
+    width:100%;
+    padding:11px 12px;
+    border-radius:9px;
+    border:1px solid var(--line);
+    background:#fff;
+    font-size:15px;
+    font-family:inherit;
+    color:var(--ink);
+  }
+  .field textarea{resize:vertical;}
+  .field input:focus, .field textarea:focus, select:focus{outline:2px solid var(--ink); outline-offset:1px;}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--ink);color:#fff;border:none;
+    padding:12px 18px;border-radius:9px;
+    font-family:inherit;font-size:14.5px;font-weight:600;
+    cursor:pointer;width:100%;
+  }
+  .btn:active{opacity:0.85;}
+  .btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line);}
+  .btn.danger{background:var(--brick);}
+  .btn.small{width:auto;padding:8px 14px;font-size:13px;}
+  #login-error{color:var(--brick);font-size:13px;margin-top:12px;min-height:16px;}
+
+  /* --- App shell --- */
+  #app{display:none;}
+  header.top{
+    position:sticky;top:0;z-index:10;
+    background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:16px 18px 12px;
+  }
+  header.top .row{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;}
+  header.top h1{font-size:19px;}
+  header.top .eyebrow{
+    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:600;margin-bottom:2px;
+  }
+  header.top button.logout{
+    background:var(--paper-raised);color:var(--ink);
+    border:1px solid var(--line);border-radius:100px;
+    padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;
+    font-family:inherit;
+  }
+
+  main{padding:16px 16px 24px;max-width:640px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .card{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .empty{
+    text-align:center;color:var(--ink-soft);
+    padding:36px 20px;font-size:14px;
+    background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+  }
+
+  /* stats strip */
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .stat{
+    border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px;
+  }
+  .stat.stat-green{background:var(--green-soft);border-color:var(--green);}
+  .stat.stat-brick{background:var(--brick-soft);border-color:var(--brick);}
+  .stat .label{font-size:11.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;font-weight:700;}
+  .stat .val{font-size:21px;}
+
+  /* action list */
+  .action-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 14px;margin-bottom:10px;
+    background:var(--paper-raised);border:1px solid var(--line);
+    border-left:5px solid var(--green);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+    cursor:pointer;
+  }
+  .action-item.is-pending{border-left-color:var(--gold);}
+  .action-item.is-don{border-left-color:var(--brick);}
+  .action-item:last-child{margin-bottom:0;}
+  .action-item .left .type-tag{
+    display:inline-block;font-size:11px;font-weight:600;
+    background:var(--gold-soft);color:var(--gold);
+    padding:2px 8px;border-radius:100px;margin-bottom:4px;
+  }
+  .action-item .left .type-tag.pending{background:var(--brick-soft);color:var(--brick);}
+  .action-item .left .type-tag.don{background:var(--brick-soft);color:var(--brick);}
+  .action-item .left .name{font-weight:600;font-size:15px;}
+  .action-item .left .date{font-size:12px;color:var(--ink-soft);margin-top:1px;}
+  .action-item .right{text-align:right;}
+  .action-item .right .benef{font-size:16px;}
+  .action-item .right .status{font-size:11px;color:var(--ink-soft);margin-top:2px;max-width:160px;}
+
+  /* forms */
+  .field-row{display:flex;gap:10px;}
+  .field-row .field{flex:1;}
+  select{
+    width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;font-size:15px;font-family:inherit;color:var(--ink);
+  }
+  .dep-block{
+    border:1px solid var(--line);border-radius:10px;
+    padding:10px;margin-bottom:10px;background:#fff;
+  }
+  .dep-row{
+    display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;
+    align-items:end;
+  }
+  .dep-row .field{margin-bottom:0;}
+  .icon-btn{
+    background:none;border:none;color:var(--brick);cursor:pointer;
+    font-size:18px;padding:8px 4px;line-height:1;
+  }
+  .dep-attach{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    margin-top:9px;padding-top:9px;border-top:1px dashed var(--line);
+  }
+  .dep-attach .file-label{
+    cursor:pointer;color:var(--ink);font-weight:600;
+    font-size:12.5px;text-decoration:underline;
+  }
+  .file-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--paper);border:1px solid var(--line);border-radius:8px;
+    padding:4px 8px;font-size:12px;max-width:100%;
+  }
+  .file-chip img{width:22px;height:22px;object-fit:cover;border-radius:4px;}
+  .file-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;}
+  .file-chip button{background:none;border:none;color:var(--brick);cursor:pointer;font-size:14px;line-height:1;padding:0;}
+  .add-link{
+    background:none;border:none;color:var(--ink);font-weight:600;
+    font-size:13.5px;cursor:pointer;padding:6px 0;font-family:inherit;
+    text-decoration:underline;
+  }
+  .modal-backdrop{
+    display:none;position:fixed;inset:0;background:rgba(22,50,79,0.35);
+    z-index:20;align-items:flex-end;justify-content:center;
+  }
+  .modal-backdrop.active{display:flex;}
+  .modal{
+    background:var(--paper);width:100%;max-width:640px;
+    border-radius:18px 18px 0 0;padding:20px 18px 28px;
+    max-height:88vh;overflow-y:auto;
+  }
+  .modal h2{font-size:19px;margin-bottom:16px;}
+  .modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .modal-header button{background:none;border:none;font-size:22px;color:var(--ink-soft);cursor:pointer;line-height:1;}
+  .computed-line{
+    display:flex;justify-content:space-between;padding:9px 0;
+    border-top:1px solid var(--line);font-size:14.5px;
+  }
+  .computed-line.total{font-weight:600;font-size:16px;}
+
+  /* choice buttons */
+  .choice-btn{
+    display:block;width:100%;text-align:left;background:#fff;
+    border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin-bottom:10px;font-family:inherit;cursor:pointer;
+  }
+  .choice-btn .t{font-weight:600;font-size:15px;margin-bottom:2px;}
+  .choice-btn .d{font-size:12.5px;color:var(--ink-soft);}
+
+  /* adherents */
+  .adh-item{
+    padding:13px 14px;margin-bottom:10px;cursor:pointer;
+    background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+  }
+  .adh-item:last-child{margin-bottom:0;}
+  .adh-item .name{font-weight:600;font-size:15px;}
+  .adh-item .meta{font-size:12.5px;color:var(--ink-soft);margin-top:2px;}
+
+  /* nav */
+  nav.tabbar{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--paper);border-top:1px solid var(--line);
+    display:flex;gap:8px;z-index:10;
+    padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+  }
+  nav.tabbar button{
+    flex:1;background:var(--paper-raised);
+    border:1px solid var(--line);border-radius:12px;
+    padding:9px 4px 7px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    color:var(--ink-soft);font-family:inherit;font-size:10.5px;font-weight:600;
+    cursor:pointer;
+  }
+  nav.tabbar button svg{width:20px;height:20px;stroke:var(--ink-soft);fill:none;stroke-width:1.8;}
+  nav.tabbar button.active{color:var(--ink);background:var(--gold-soft);border-color:var(--gold);}
+  nav.tabbar button.active svg{stroke:var(--ink);}
+
+  .fab{
+    position:fixed;bottom:90px;right:20px;
+    width:54px;height:54px;border-radius:16px;
+    background:var(--ink);color:#fff;border:none;
+    font-size:26px;box-shadow:var(--shadow);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    z-index:9;
+  }
+  .toast{
+    position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
+    font-size:13.5px;z-index:30;opacity:0;transition:opacity .25s;pointer-events:none;
+    max-width:85%;text-align:center;
+  }
+  .toast.show{opacity:1;}
+
+  .ag-section-title{
+    font-size:12px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--ink-soft);font-weight:600;margin:16px 0 4px;
+  }
+  .ag-list{list-style:none;padding:0;margin:0;}
+  .ag-list li{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .ag-list li span:first-child{flex:1;}
+  .ag-total-line{
+    display:flex;justify-content:space-between;padding:12px 0 2px;
+    border-top:2px solid var(--ink);margin-top:10px;font-weight:700;font-size:16px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Login ===== -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="mark">C</div>
+    <h1>Carnet de comptes</h1>
+    <p class="sub">Association des Amis des Écoles</p>
+    <div class="field">
+      <label for="login-email">Adresse e-mail</label>
+      <input id="login-email" type="email" autocomplete="username" placeholder="toi@exemple.fr">
+    </div>
+    <div class="field">
+      <label for="login-pass">Mot de passe</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+    </div>
+    <button class="btn" id="login-btn">Se connecter</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<!-- ===== App ===== -->
+<div id="app">
+  <header class="top">
+    <div class="row">
+      <div>
+        <div class="eyebrow">Amis des écoles</div>
+        <h1 id="view-title">Actions</h1>
+      </div>
+      <button class="logout" id="logout-btn">Se déconnecter</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ACTIONS -->
+    <section class="view active" id="view-actions">
+      <div class="stats">
+        <div class="stat stat-green">
+          <div class="label">Bénéfice actions</div>
+          <div class="val num pos" id="stat-total">0 €</div>
+        </div>
+        <div class="stat stat-brick">
+          <div class="label">À déposer</div>
+          <div class="val num neg" id="stat-pending">0 €</div>
+        </div>
+      </div>
+      <div id="actions-list"></div>
+      <div class="empty" id="actions-empty" style="display:none;">Aucune action ni don pour l'instant.<br>Touche le bouton + pour en créer un.</div>
+    </section>
+
+    <!-- EN COURS -->
+    <section class="view" id="view-encours">
+      <div id="encours-list"></div>
+      <div class="empty" id="encours-empty" style="display:none;">Toutes les actions sont déposées. 🎉</div>
+    </section>
+
+    <!-- ADHESION -->
+    <section class="view" id="view-adhesion">
+      <div id="adherents-list"></div>
+      <div class="empty" id="adherents-empty" style="display:none;">Aucun adhérent enregistré.<br>Touche le bouton + pour en ajouter un.</div>
+    </section>
+
+    <!-- AG -->
+    <section class="view" id="view-ag">
+      <div class="card">
+        <h2 style="font-size:16px;margin-bottom:6px;">Bilan pour l'Assemblée Générale</h2>
+        <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 14px;">Génère un PDF récapitulatif des actions, dons et adhésions, à présenter en AG.</p>
+        <button class="btn" id="generate-pdf-btn">Générer le PDF</button>
+        <div id="ag-content"></div>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fab-add">+</button>
+
+  <nav class="tabbar">
+    <button class="tab-btn active" data-view="view-actions">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+      Actions
+    </button>
+    <button class="tab-btn" data-view="view-encours">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      En cours
+    </button>
+    <button class="tab-btn" data-view="view-adhesion">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7"/></svg>
+      Adhésions
+    </button>
+    <button class="tab-btn" data-view="view-ag">
+      <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>
+      AG
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ===== Modal: choix nouvelle entrée ===== -->
+<div class="modal-backdrop" id="choice-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Ajouter</h2>
+      <button id="choice-modal-close">&times;</button>
+    </div>
+    <button type="button" class="choice-btn" id="choice-action">
+      <div class="t">Nouvelle action</div>
+      <div class="d">Vente, boum, kermesse... une action qui rapporte de l'argent à l'association.</div>
+    </button>
+    <button type="button" class="choice-btn" id="choice-don">
+      <div class="t">Nouveau don</div>
+      <div class="d">Reversement d'argent à une école (livres, sortie scolaire...).</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Modal: nouvelle / edition action ===== -->
+<div class="modal-backdrop" id="action-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="action-modal-title">Nouvelle action</h2>
+      <button id="action-modal-close">&times;</button>
+    </div>
+
+    <div class="field">
+      <label>Nom de l'action</label>
+      <input id="f-nom" type="text" placeholder="Ex: Vente de gâteaux — Kermesse">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Type d'action</label>
+        <select id="f-type">
+          <option>Vente gâteaux</option>
+          <option>Vente chocolats</option>
+          <option>Vente brioches</option>
+          <option>Boum</option>
+          <option>Kermesse</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Date</label>
+        <input id="f-date" type="date">
+      </div>
+    </div>
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-soft);font-weight:500;margin:6px 0 8px;">Dépenses</label>
+    <div id="dep-rows"></div>
+    <button class="add-link" id="add-dep-btn">+ Ajouter une dépense</button>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Chiffre d'affaire (recette totale)</label>
+      <input id="f-ca" type="number" step="0.01" placeholder="0.00">
+    </div>
+
+    <div class="computed-line total">
+      <span>Bénéfice</span>
+      <span class="num" id="f-benefice">0,00 €</span>
+    </div>
+
+    <label style="display:flex;align-items:center;gap:8px;margin:14px 0 18px;font-size:14px;">
+      <input type="checkbox" id="f-depose" style="width:17px;height:17px;">
+      Argent déposé en banque
+    </label>
+
+    <button class="btn" id="save-action-btn">Enregistrer</button>
+    <button class="btn danger" id="delete-action-btn" style="margin-top:10px;display:none;">Supprimer cette action</button>
+  </div>
+</div>
+
+<!-- ===== Modal: nouveau / edition don ===== -->
+<div class="modal-backdrop" id="don-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="don-modal-title">Nouveau don</h2>
+      <button id="don-modal-close">&times;</button>
+    </div>
+    <div class="field">
+      <label>École bénéficiaire</label>
+      <select id="d-ecole">
+        <option>Jean Moulin</option>
+        <option>André Lassagne</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Montant du don</label><input id="d-montant" type="number" step="0.01" placeholder="0.00"></div>
+      <div class="field"><label>Date</label><input id="d-date" type="date"></div>
+    </div>
+    <div class="field">
+      <label>Justification</label>
+      <input id="d-justif" type="text" placeholder="Ex: Achat de livres, sortie scolaire...">
+    </div>
+    <div class="field">
+      <label>Moyen de paiement</label>
+      <select id="d-paiement">
+        <option>Chèque</option>
+        <option>Espèce</option>
+        <option>Virement</option>
+      </select>
+    </div>
+    <button class="btn" id="save-don-btn">Enregistrer</button>
+    <button class="btn danger" id="delete-don-btn" style="margin-top:10px;display:none;">Supprimer ce don</button>
+  </div>
+</div>
+
+<!-- ===== Modal: nouvel / edition adherent ===== -->
+<div class="modal-backdrop" id="adh-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="adh-modal-title">Nouvel adhérent</h2>
+      <button id="adh-modal-close">&times;</button>
+    </div>
+    <div class="field">
+      <label>Groupe scolaire</label>
+      <select id="a-groupe">
+        <option>A. Lassagne</option>
+        <option>C. Fournier</option>
+        <option>J. Moulin</option>
+        <option>J. Cartier</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Nom</label><input id="a-nom" type="text"></div>
+      <div class="field"><label>Prénom</label><input id="a-prenom" type="text"></div>
+    </div>
+    <div class="field">
+      <label>Prénom(s) et classe(s) des enfants</label>
+      <textarea id="a-enfants" rows="2" placeholder="Ex: Léo (CE2), Alix (CM1)"></textarea>
+    </div>
+    <div class="field">
+      <label>Adresse</label>
+      <textarea id="a-adresse" rows="2"></textarea>
+    </div>
+    <div class="field"><label>Adresse e-mail</label><input id="a-email" type="email"></div>
+    <div class="field"><label>Téléphone</label><input id="a-tel" type="tel"></div>
+    <div class="field">
+      <label>Moyen de paiement</label>
+      <select id="a-paiement">
+        <option>Espèce</option>
+        <option>Chèque</option>
+        <option>Virement</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Montant de l'adhésion</label>
+      <input id="a-montant" type="number" step="0.5" min="5" value="5">
+    </div>
+    <button class="btn" id="save-adh-btn">Enregistrer</button>
+    <button class="btn danger" id="delete-adh-btn" style="margin-top:10px;display:none;">Supprimer cet adhérent</button>
+  </div>
+</div>
+
+<!-- ===== Firebase ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<!-- jsPDF pour l'export PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCeg_VIEvDYEXJEmbX8bqFHCg7DAzce5OU",
+  authDomain: "compta-amis-des-ecoles.firebaseapp.com",
+  projectId: "compta-amis-des-ecoles",
+  storageBucket: "compta-amis-des-ecoles.firebasestorage.app",
+  messagingSenderId: "450315150389",
+  appId: "1:450315150389:web:4a9179101333ceddaafd7c"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+let actions = [];
+let adherents = [];
+let dons = [];
+let unsubActions = null, unsubAdherents = null, unsubDons = null;
+let editingActionId = null, editingAdhId = null, editingDonId = null;
+
+const MAX_DOC_BYTES = 900000; // marge sous la limite Firestore de 1 Mo par document
+
+// ---------- Auth ----------
+document.getElementById('login-btn').addEventListener('click', () => {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = "Renseigne ton e-mail et ton mot de passe."; return; }
+  auth.signInWithEmailAndPassword(email, pass).catch(err => {
+    errEl.textContent = "Connexion impossible : e-mail ou mot de passe incorrect.";
+  });
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => auth.signOut());
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    listenActions();
+    listenAdherents();
+    listenDons();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    if (unsubActions) unsubActions();
+    if (unsubAdherents) unsubAdherents();
+    if (unsubDons) unsubDons();
+  }
+});
+
+// ---------- Firestore listeners ----------
+function listenActions() {
+  unsubActions = db.collection('actions').orderBy('date', 'desc').onSnapshot(snap => {
+    actions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderActions();
+    renderEnCours();
+    renderAG();
+  });
+}
+function listenAdherents() {
+  unsubAdherents = db.collection('adherents').orderBy('nom').onSnapshot(snap => {
+    adherents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderAdherents();
+    renderAG();
+  });
+}
+function listenDons() {
+  unsubDons = db.collection('dons').orderBy('date', 'desc').onSnapshot(snap => {
+    dons = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderActions();
+    renderAG();
+  });
+}
+
+// ---------- Helpers ----------
+function eur(n) { return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); }
+function beneficeOf(a) {
+  const depTotal = (a.depenses || []).reduce((s, d) => s + (Number(d.montant) || 0), 0);
+  return (Number(a.ca) || 0) - depTotal;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.view).classList.add('active');
+    document.getElementById('view-title').textContent = btn.textContent.trim();
+    document.getElementById('fab-add').style.display = (btn.dataset.view === 'view-ag' || btn.dataset.view === 'view-encours') ? 'none' : 'flex';
+  });
+});
+
+// ---------- Render: Actions + Dons (liste combinée) ----------
+function renderActions() {
+  const list = document.getElementById('actions-list');
+  const empty = document.getElementById('actions-empty');
+  list.innerHTML = '';
+
+  let total = 0, pending = 0;
+  actions.forEach(a => {
+    const benef = beneficeOf(a);
+    total += benef;
+    if (!a.depose) pending += benef;
+  });
+  document.getElementById('stat-total').textContent = eur(total);
+  document.getElementById('stat-pending').textContent = eur(pending);
+
+  const combined = [
+    ...actions.map(a => ({ kind: 'action', data: a })),
+    ...dons.map(d => ({ kind: 'don', data: d }))
+  ].sort((x, y) => (y.data.date || '').localeCompare(x.data.date || ''));
+
+  empty.style.display = combined.length ? 'none' : 'block';
+  combined.forEach(item => {
+    list.appendChild(item.kind === 'action' ? actionRow(item.data, beneficeOf(item.data)) : donRow(item.data));
+  });
+}
+
+function renderEnCours() {
+  const list = document.getElementById('encours-list');
+  const empty = document.getElementById('encours-empty');
+  const pending = actions.filter(a => !a.depose);
+  list.innerHTML = '';
+  empty.style.display = pending.length ? 'none' : 'block';
+  pending.forEach(a => list.appendChild(actionRow(a, beneficeOf(a))));
+}
+
+function actionRow(a, benef) {
+  const row = document.createElement('div');
+  row.className = 'action-item' + (a.depose ? '' : ' is-pending');
+  const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '';
+  row.innerHTML = `
+    <div class="left">
+      <span class="type-tag ${a.depose ? '' : 'pending'}">${escapeHtml(a.type || 'Autre')}</span>
+      <div class="name">${escapeHtml(a.nom || 'Sans nom')}</div>
+      <div class="date">${dateStr}</div>
+    </div>
+    <div class="right">
+      <div class="benef num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</div>
+      <div class="status">${a.depose ? 'Déposé' : 'À déposer'}</div>
+    </div>`;
+  row.addEventListener('click', () => openActionModal(a));
+  return row;
+}
+
+function donRow(d) {
+  const row = document.createElement('div');
+  row.className = 'action-item is-don';
+  const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '';
+  row.innerHTML = `
+    <div class="left">
+      <span class="type-tag don">Don</span>
+      <div class="name">${escapeHtml(d.ecole || '')}</div>
+      <div class="date">${dateStr}</div>
+    </div>
+    <div class="right">
+      <div class="benef num neg">− ${eur(d.montant)}</div>
+      <div class="status">${escapeHtml(d.justification || '')}</div>
+    </div>`;
+  row.addEventListener('click', () => openDonModal(d));
+  return row;
+}
+
+// ---------- Render: Adherents ----------
+function renderAdherents() {
+  const list = document.getElementById('adherents-list');
+  const empty = document.getElementById('adherents-empty');
+  list.innerHTML = '';
+  empty.style.display = adherents.length ? 'none' : 'block';
+  adherents.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'adh-item';
+    row.innerHTML = `
+      <div class="name">${escapeHtml(a.prenom || '')} ${escapeHtml(a.nom || '')}</div>
+      <div class="meta">${escapeHtml(a.groupeScolaire || '')}${a.enfants ? ' · ' + escapeHtml(a.enfants) : ''}</div>
+      <div class="meta">${escapeHtml(a.email || '')}${a.telephone ? ' · ' + escapeHtml(a.telephone) : ''} · ${escapeHtml(a.moyenPaiement || '')} · <span class="num">${eur(a.montant)}</span></div>`;
+    row.addEventListener('click', () => openAdhModal(a));
+    list.appendChild(row);
+  });
+}
+
+// ---------- Render: AG ----------
+function renderAG() {
+  const totalActions = actions.reduce((s, a) => s + beneficeOf(a), 0);
+  const totalCotisations = adherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
+  const totalDons = dons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
+  const grandTotal = totalActions + totalCotisations - totalDons;
+
+  let html = '<div class="ag-section-title">Actions</div><ul class="ag-list">';
+  const sortedActions = actions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!sortedActions.length) html += '<li><span style="color:var(--ink-soft);">Aucune action.</span><span></span></li>';
+  sortedActions.forEach(a => {
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
+    const benef = beneficeOf(a);
+    html += `<li><span>${dateStr} — ${escapeHtml(a.nom || '')}</span><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span></li>`;
+  });
+  html += `<li><span><strong>Sous-total actions</strong></span><span class="num ${totalActions >= 0 ? 'pos' : 'neg'}"><strong>${eur(totalActions)}</strong></span></li>`;
+  html += '</ul>';
+
+  html += '<div class="ag-section-title">Dons aux écoles</div><ul class="ag-list">';
+  const sortedDons = dons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!sortedDons.length) html += '<li><span style="color:var(--ink-soft);">Aucun don.</span><span></span></li>';
+  sortedDons.forEach(d => {
+    const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '—';
+    html += `<li><span>${dateStr} — ${escapeHtml(d.ecole || '')}${d.justification ? ' (' + escapeHtml(d.justification) + ')' : ''}</span><span class="num neg">− ${eur(d.montant)}</span></li>`;
+  });
+  html += `<li><span><strong>Sous-total dons</strong></span><span class="num neg"><strong>− ${eur(totalDons)}</strong></span></li>`;
+  html += '</ul>';
+
+  html += `<div class="ag-section-title">Adhésions</div><ul class="ag-list"><li><span>${adherents.length} adhésion${adherents.length > 1 ? 's' : ''}</span><span class="num pos">${eur(totalCotisations)}</span></li></ul>`;
+
+  html += `<div class="ag-total-line"><span>Bilan net de l'association</span><span class="num ${grandTotal >= 0 ? 'pos' : 'neg'}">${eur(grandTotal)}</span></div>`;
+
+  document.getElementById('ag-content').innerHTML = html;
+}
+
+// ---------- Modal: choix ----------
+document.getElementById('fab-add').addEventListener('click', () => {
+  const activeView = document.querySelector('.view.active').id;
+  if (activeView === 'view-adhesion') { openAdhModal(null); return; }
+  if (activeView === 'view-actions') { document.getElementById('choice-modal').classList.add('active'); return; }
+});
+document.getElementById('choice-modal-close').addEventListener('click', () => document.getElementById('choice-modal').classList.remove('active'));
+document.getElementById('choice-action').addEventListener('click', () => {
+  document.getElementById('choice-modal').classList.remove('active');
+  openActionModal(null);
+});
+document.getElementById('choice-don').addEventListener('click', () => {
+  document.getElementById('choice-modal').classList.remove('active');
+  openDonModal(null);
+});
+
+// ---------- Modal: Action ----------
+const actionModal = document.getElementById('action-modal');
+document.getElementById('action-modal-close').addEventListener('click', () => actionModal.classList.remove('active'));
+
+function openActionModal(action) {
+  editingActionId = action ? action.id : null;
+  document.getElementById('action-modal-title').textContent = action ? 'Modifier l\'action' : 'Nouvelle action';
+  document.getElementById('f-nom').value = action?.nom || '';
+  document.getElementById('f-type').value = action?.type || 'Vente gâteaux';
+  document.getElementById('f-date').value = action?.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('f-ca').value = action?.ca ?? '';
+  document.getElementById('f-depose').checked = !!action?.depose;
+  document.getElementById('delete-action-btn').style.display = action ? 'block' : 'none';
+
+  const depRows = document.getElementById('dep-rows');
+  depRows.innerHTML = '';
+  (action?.depenses || []).forEach(d => addDepRow(d));
+  updateBeneficePreview();
+  actionModal.classList.add('active');
+}
+
+function addDepRow(dep) {
+  const block = document.createElement('div');
+  block.className = 'dep-block';
+  block.innerHTML = `
+    <div class="dep-row">
+      <div class="field"><label>Date</label><input type="date" class="dep-date" value="${dep?.date || ''}"></div>
+      <div class="field"><label>Montant</label><input type="number" step="0.01" class="dep-montant" value="${dep?.montant ?? ''}"></div>
+      <div class="field"><label>Type</label><input type="text" class="dep-type" placeholder="Ingrédients..." value="${dep?.type ? escapeHtml(dep.type) : ''}"></div>
+      <button type="button" class="icon-btn" title="Supprimer cette dépense">&times;</button>
+    </div>
+    <div class="dep-attach">
+      <label class="file-label">📎 Joindre un justificatif<input type="file" accept="image/*,application/pdf" class="dep-file" style="display:none;"></label>
+      <div class="file-chip-holder"></div>
+    </div>`;
+  block.querySelector('.icon-btn').addEventListener('click', () => { block.remove(); updateBeneficePreview(); });
+  block.querySelectorAll('.dep-date,.dep-montant,.dep-type').forEach(inp => inp.addEventListener('input', updateBeneficePreview));
+
+  block.dataset.justifData = dep?.justificatifData || '';
+  block.dataset.justifNom = dep?.justificatifNom || '';
+  block.dataset.justifMime = dep?.justificatifMime || '';
+  renderFileChip(block);
+
+  block.querySelector('.dep-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    showToast('Traitement du fichier...');
+    try {
+      const result = await fileToStorable(file);
+      block.dataset.justifData = result.dataUrl;
+      block.dataset.justifNom = file.name;
+      block.dataset.justifMime = result.mime;
+      renderFileChip(block);
+    } catch (err) {
+      showToast(err && err.message ? err.message : "Impossible de traiter ce fichier.");
+    }
+  });
+
+  document.getElementById('dep-rows').appendChild(block);
+}
+
+function renderFileChip(block) {
+  const holder = block.querySelector('.file-chip-holder');
+  const data = block.dataset.justifData;
+  if (!data) { holder.innerHTML = ''; return; }
+  const isImg = (block.dataset.justifMime || '').startsWith('image/');
+  holder.innerHTML = `
+    <span class="file-chip">
+      ${isImg ? `<img src="${data}" alt="">` : '📄'}
+      <span>${escapeHtml(block.dataset.justifNom || 'Justificatif')}</span>
+      <button type="button" title="Retirer">&times;</button>
+    </span>
+    <a href="${data}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ink-soft);text-decoration:underline;">Voir</a>`;
+  holder.querySelector('.file-chip button').addEventListener('click', () => {
+    block.dataset.justifData = '';
+    block.dataset.justifNom = '';
+    block.dataset.justifMime = '';
+    renderFileChip(block);
+  });
+}
+
+function fileToStorable(file) {
+  return new Promise((resolve, reject) => {
+    if (file.type === 'application/pdf') {
+      if (file.size > 900 * 1024) { reject(new Error('PDF trop volumineux (max ~900 Ko).')); return; }
+      const reader = new FileReader();
+      reader.onload = () => resolve({ dataUrl: reader.result, mime: file.type });
+      reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+      reader.readAsDataURL(file);
+      return;
+    }
+    if (!file.type.startsWith('image/')) { reject(new Error('Formats acceptés : image ou PDF.')); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1400;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.6), mime: 'image/jpeg' });
+      };
+      img.onerror = () => reject(new Error('Image illisible.'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+document.getElementById('add-dep-btn').addEventListener('click', () => addDepRow(null));
+document.getElementById('f-ca').addEventListener('input', updateBeneficePreview);
+
+function readDepenses() {
+  return [...document.querySelectorAll('#dep-rows .dep-block')].map(block => ({
+    date: block.querySelector('.dep-date').value,
+    montant: parseFloat(block.querySelector('.dep-montant').value) || 0,
+    type: block.querySelector('.dep-type').value.trim(),
+    justificatifData: block.dataset.justifData || '',
+    justificatifNom: block.dataset.justifNom || '',
+    justificatifMime: block.dataset.justifMime || ''
+  }));
+}
+function updateBeneficePreview() {
+  const ca = parseFloat(document.getElementById('f-ca').value) || 0;
+  const depTotal = readDepenses().reduce((s, d) => s + d.montant, 0);
+  document.getElementById('f-benefice').textContent = eur(ca - depTotal);
+}
+
+document.getElementById('save-action-btn').addEventListener('click', () => {
+  const nom = document.getElementById('f-nom').value.trim();
+  if (!nom) { showToast('Donne un nom à cette action.'); return; }
+  const payload = {
+    nom,
+    type: document.getElementById('f-type').value,
+    date: document.getElementById('f-date').value,
+    depenses: readDepenses(),
+    ca: parseFloat(document.getElementById('f-ca').value) || 0,
+    depose: document.getElementById('f-depose').checked
+  };
+  if (JSON.stringify(payload).length > MAX_DOC_BYTES) {
+    showToast('Les justificatifs sont trop volumineux au total. Retire ou réduis une pièce jointe.');
+    return;
+  }
+  const promise = editingActionId
+    ? db.collection('actions').doc(editingActionId).set(payload, { merge: true })
+    : db.collection('actions').add(payload);
+  promise.then(() => { actionModal.classList.remove('active'); showToast('Action enregistrée.'); })
+         .catch(() => showToast('Erreur d\'enregistrement.'));
+});
+
+document.getElementById('delete-action-btn').addEventListener('click', () => {
+  if (!editingActionId) return;
+  if (!confirm('Supprimer définitivement cette action ?')) return;
+  db.collection('actions').doc(editingActionId).delete().then(() => {
+    actionModal.classList.remove('active');
+    showToast('Action supprimée.');
+  });
+});
+
+// ---------- Modal: Don ----------
+const donModal = document.getElementById('don-modal');
+document.getElementById('don-modal-close').addEventListener('click', () => donModal.classList.remove('active'));
+
+function openDonModal(don) {
+  editingDonId = don ? don.id : null;
+  document.getElementById('don-modal-title').textContent = don ? 'Modifier le don' : 'Nouveau don';
+  document.getElementById('d-ecole').value = don?.ecole || 'Jean Moulin';
+  document.getElementById('d-montant').value = don?.montant ?? '';
+  document.getElementById('d-date').value = don?.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('d-justif').value = don?.justification || '';
+  document.getElementById('d-paiement').value = don?.moyenPaiement || 'Chèque';
+  document.getElementById('delete-don-btn').style.display = don ? 'block' : 'none';
+  donModal.classList.add('active');
+}
+
+document.getElementById('save-don-btn').addEventListener('click', () => {
+  const montant = parseFloat(document.getElementById('d-montant').value) || 0;
+  if (montant <= 0) { showToast('Indique un montant pour ce don.'); return; }
+  const payload = {
+    ecole: document.getElementById('d-ecole').value,
+    montant,
+    date: document.getElementById('d-date').value,
+    justification: document.getElementById('d-justif').value.trim(),
+    moyenPaiement: document.getElementById('d-paiement').value
+  };
+  const promise = editingDonId
+    ? db.collection('dons').doc(editingDonId).set(payload, { merge: true })
+    : db.collection('dons').add(payload);
+  promise.then(() => { donModal.classList.remove('active'); showToast('Don enregistré.'); })
+         .catch(() => showToast('Erreur d\'enregistrement.'));
+});
+
+document.getElementById('delete-don-btn').addEventListener('click', () => {
+  if (!editingDonId) return;
+  if (!confirm('Supprimer définitivement ce don ?')) return;
+  db.collection('dons').doc(editingDonId).delete().then(() => {
+    donModal.classList.remove('active');
+    showToast('Don supprimé.');
+  });
+});
+
+// ---------- Modal: Adherent ----------
+const adhModal = document.getElementById('adh-modal');
+document.getElementById('adh-modal-close').addEventListener('click', () => adhModal.classList.remove('active'));
+
+function openAdhModal(adh) {
+  editingAdhId = adh ? adh.id : null;
+  document.getElementById('adh-modal-title').textContent = adh ? 'Modifier l\'adhérent' : 'Nouvel adhérent';
+  document.getElementById('a-groupe').value = adh?.groupeScolaire || 'A. Lassagne';
+  document.getElementById('a-nom').value = adh?.nom || '';
+  document.getElementById('a-prenom').value = adh?.prenom || '';
+  document.getElementById('a-enfants').value = adh?.enfants || '';
+  document.getElementById('a-adresse').value = adh?.adresse || '';
+  document.getElementById('a-email').value = adh?.email || '';
+  document.getElementById('a-tel').value = adh?.telephone || '';
+  document.getElementById('a-paiement').value = adh?.moyenPaiement || 'Espèce';
+  document.getElementById('a-montant').value = adh?.montant ?? 5;
+  document.getElementById('delete-adh-btn').style.display = adh ? 'block' : 'none';
+  adhModal.classList.add('active');
+}
+
+document.getElementById('save-adh-btn').addEventListener('click', () => {
+  const nom = document.getElementById('a-nom').value.trim();
+  const prenom = document.getElementById('a-prenom').value.trim();
+  const montant = parseFloat(document.getElementById('a-montant').value) || 0;
+  if (!nom || !prenom) { showToast('Renseigne au moins le nom et le prénom.'); return; }
+  if (montant < 5) { showToast('Le montant minimum de l\'adhésion est 5 €.'); return; }
+  const payload = {
+    groupeScolaire: document.getElementById('a-groupe').value,
+    nom, prenom,
+    enfants: document.getElementById('a-enfants').value.trim(),
+    adresse: document.getElementById('a-adresse').value.trim(),
+    email: document.getElementById('a-email').value.trim(),
+    telephone: document.getElementById('a-tel').value.trim(),
+    moyenPaiement: document.getElementById('a-paiement').value,
+    montant,
+    dateAdhesion: editingAdhId ? undefined : new Date().toISOString().slice(0, 10)
+  };
+  if (payload.dateAdhesion === undefined) delete payload.dateAdhesion;
+  const promise = editingAdhId
+    ? db.collection('adherents').doc(editingAdhId).set(payload, { merge: true })
+    : db.collection('adherents').add(payload);
+  promise.then(() => { adhModal.classList.remove('active'); showToast('Adhérent enregistré.'); })
+         .catch(() => showToast('Erreur d\'enregistrement.'));
+});
+
+document.getElementById('delete-adh-btn').addEventListener('click', () => {
+  if (!editingAdhId) return;
+  if (!confirm('Supprimer définitivement cet adhérent ?')) return;
+  db.collection('adherents').doc(editingAdhId).delete().then(() => {
+    adhModal.classList.remove('active');
+    showToast('Adhérent supprimé.');
+  });
+});
+
+// ---------- PDF export (Assemblée Générale) ----------
+document.getElementById('generate-pdf-btn').addEventListener('click', () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 18;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Bilan financier — Association des Amis des Écoles', 14, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Assemblée générale — ' + new Date().toLocaleDateString('fr-FR'), 14, y);
+  y += 12;
+
+  function sectionHeader(title) {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(title, 14, y);
+    y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+  }
+  function row(left, right, bold) {
+    if (y > 280) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(String(left).slice(0, 85), 14, y);
+    doc.text(String(right), 196, y, { align: 'right' });
+    y += 7;
+  }
+
+  const sortedActions = actions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedDons = dons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const totalActions = actions.reduce((s, a) => s + beneficeOf(a), 0);
+  const totalCotisations = adherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
+  const totalDons = dons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
+  const grandTotal = totalActions + totalCotisations - totalDons;
+
+  sectionHeader('Actions');
+  if (!sortedActions.length) row('Aucune action', '');
+  sortedActions.forEach(a => {
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
+    row(dateStr + ' — ' + (a.nom || ''), eur(beneficeOf(a)));
+  });
+  row('Sous-total actions', eur(totalActions), true);
+  y += 5;
+
+  sectionHeader('Dons aux écoles');
+  if (!sortedDons.length) row('Aucun don', '');
+  sortedDons.forEach(d => {
+    const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '—';
+    const label = dateStr + ' — ' + (d.ecole || '') + (d.justification ? ' (' + d.justification + ')' : '');
+    row(label, '− ' + eur(d.montant));
+  });
+  row('Sous-total dons', '− ' + eur(totalDons), true);
+  y += 5;
+
+  sectionHeader('Adhésions');
+  row(adherents.length + ' adhésion(s)', eur(totalCotisations), true);
+  y += 5;
+
+  if (y > 270) { doc.addPage(); y = 20; }
+  doc.setLineWidth(0.5);
+  doc.line(14, y, 196, y);
+  y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Bilan net de l\'association', 14, y);
+  doc.text(eur(grandTotal), 196, y, { align: 'right' });
+
+  doc.save('bilan-AG-' + new Date().toISOString().slice(0, 10) + '.pdf');
+  showToast('PDF prêt — choisis où l\'enregistrer.');
+});
+</script>
+</body>
+</html>
