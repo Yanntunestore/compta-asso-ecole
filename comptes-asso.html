@@ -71,7 +71,7 @@
   }
   .login-card h1{font-size:22px;margin-bottom:4px;}
   .login-card p.sub{color:var(--ink-soft);font-size:13.5px;margin:0 0 22px;}
-  .field{text-align:left;margin-bottom:14px;}
+  .field{text-align:left;margin-bottom:14px;min-width:120px;}
   .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:5px;font-weight:500;}
   .field input, .field textarea{
     width:100%;
@@ -106,11 +106,17 @@
     border-bottom:1px solid var(--line);
     padding:16px 18px 12px;
   }
+  header.top .version-badge{
+    position:absolute;top:14px;right:16px;
+    font-size:10.5px;font-weight:700;color:var(--ink-soft);
+    background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:100px;padding:2px 8px;
+  }
   header.top .row{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;}
   header.top h1{font-size:19px;}
   header.top .eyebrow{
-    font-size:11px;letter-spacing:.06em;text-transform:uppercase;
-    color:var(--ink-soft);font-weight:600;margin-bottom:2px;
+    font-size:14px;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700;margin-bottom:2px;
   }
   header.top button.logout{
     background:var(--paper-raised);color:var(--ink);
@@ -156,7 +162,7 @@
     background:var(--paper-raised);border:1px solid var(--line);
     border-left:5px solid var(--green);
     border-radius:var(--radius);box-shadow:var(--shadow);
-    cursor:pointer;
+    cursor:pointer;gap:10px;
   }
   .action-item.is-pending{border-left-color:var(--gold);}
   .action-item.is-don{border-left-color:var(--brick);}
@@ -170,13 +176,13 @@
   .action-item .left .type-tag.don{background:var(--brick-soft);color:var(--brick);}
   .action-item .left .name{font-weight:600;font-size:15px;}
   .action-item .left .date{font-size:12px;color:var(--ink-soft);margin-top:1px;}
-  .action-item .right{text-align:right;}
+  .action-item .right{text-align:right;flex-shrink:0;}
   .action-item .right .benef{font-size:16px;}
   .action-item .right .status{font-size:11px;color:var(--ink-soft);margin-top:2px;max-width:160px;}
 
   /* forms */
-  .field-row{display:flex;gap:10px;}
-  .field-row .field{flex:1;}
+  .field-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .field-row .field{flex:1 1 140px;}
   select{
     width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);
     background:#fff;font-size:15px;font-family:inherit;color:var(--ink);
@@ -186,13 +192,12 @@
     padding:10px;margin-bottom:10px;background:#fff;
   }
   .dep-row{
-    display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;
-    align-items:end;
+    display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;
   }
-  .dep-row .field{margin-bottom:0;}
+  .dep-row .field{flex:1 1 110px;margin-bottom:0;min-width:90px;}
   .icon-btn{
     background:none;border:none;color:var(--brick);cursor:pointer;
-    font-size:18px;padding:8px 4px;line-height:1;
+    font-size:18px;padding:8px 4px;line-height:1;flex-shrink:0;
   }
   .dep-attach{
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -273,13 +278,15 @@
   nav.tabbar button.active svg{stroke:var(--ink);}
 
   .fab{
-    position:fixed;bottom:90px;right:20px;
+    position:fixed;bottom:90px;
     width:54px;height:54px;border-radius:16px;
     background:var(--ink);color:#fff;border:none;
     font-size:26px;box-shadow:var(--shadow);cursor:pointer;
     display:flex;align-items:center;justify-content:center;
     z-index:9;
   }
+  .fab.fab-right{right:20px;}
+  .fab.fab-left{left:20px;display:none;}
   .toast{
     position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
     background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
@@ -298,6 +305,16 @@
   .ag-total-line{
     display:flex;justify-content:space-between;padding:12px 0 2px;
     border-top:2px solid var(--ink);margin-top:10px;font-weight:700;font-size:16px;
+  }
+
+  /* responsive: tablette / ordinateur */
+  @media (min-width:700px){
+    main{max-width:760px;}
+    .modal-backdrop{align-items:center;}
+    .modal{max-width:600px;border-radius:18px;max-height:85vh;}
+    nav.tabbar{max-width:760px;left:50%;right:auto;transform:translateX(-50%);border-radius:16px 16px 0 0;}
+    .fab.fab-right{right:calc(50% - 380px + 20px);}
+    .fab.fab-left{left:calc(50% - 380px + 20px);}
   }
 </style>
 </head>
@@ -325,9 +342,10 @@
 <!-- ===== App ===== -->
 <div id="app">
   <header class="top">
+    <span class="version-badge">v4</span>
     <div class="row">
       <div>
-        <div class="eyebrow">Amis des écoles</div>
+        <div class="eyebrow">Association des Amis des Écoles</div>
         <h1 id="view-title">Actions</h1>
       </div>
       <button class="logout" id="logout-btn">Se déconnecter</button>
@@ -348,33 +366,37 @@
         </div>
       </div>
       <div id="actions-list"></div>
-      <div class="empty" id="actions-empty" style="display:none;">Aucune action ni don pour l'instant.<br>Touche le bouton + pour en créer un.</div>
+      <div class="empty" id="actions-empty" style="display:none;">Aucune action, don ou facture pour l'instant.<br>Touche le bouton + pour en créer un.</div>
     </section>
 
     <!-- EN COURS -->
     <section class="view" id="view-encours">
       <div id="encours-list"></div>
-      <div class="empty" id="encours-empty" style="display:none;">Toutes les actions sont déposées. 🎉</div>
+      <div class="empty" id="encours-empty" style="display:none;">Tout est déposé et payé. 🎉</div>
     </section>
 
     <!-- ADHESION -->
     <section class="view" id="view-adhesion">
       <div id="adherents-list"></div>
-      <div class="empty" id="adherents-empty" style="display:none;">Aucun adhérent enregistré.<br>Touche le bouton + pour en ajouter un.</div>
+      <div class="empty" id="adherents-empty" style="display:none;">Aucun adhérent actif enregistré.<br>Touche le bouton + pour en ajouter un.</div>
     </section>
 
     <!-- AG -->
     <section class="view" id="view-ag">
       <div class="card">
         <h2 style="font-size:16px;margin-bottom:6px;">Bilan pour l'Assemblée Générale</h2>
-        <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 14px;">Génère un PDF récapitulatif des actions, dons et adhésions, à présenter en AG.</p>
+        <p style="font-size:13.5px;color:var(--ink-soft);margin:0 0 4px;" id="ag-year-label"></p>
+        <button class="add-link" id="ag-change-year-btn" type="button" style="margin-bottom:10px;">Changer l'année scolaire</button>
         <button class="btn" id="generate-pdf-btn">Générer le PDF</button>
         <div id="ag-content"></div>
       </div>
     </section>
   </main>
 
-  <button class="fab" id="fab-add">+</button>
+  <button class="fab fab-right" id="fab-add">+</button>
+  <button class="fab fab-left" id="fab-menu" title="Listes et archives">
+    <svg viewBox="0 0 24 24" width="20" height="20"><rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="#fff" stroke-width="2"/></svg>
+  </button>
 
   <nav class="tabbar">
     <button class="tab-btn active" data-view="view-actions">
@@ -398,7 +420,23 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- ===== Modal: choix nouvelle entrée ===== -->
+<!-- ===== Modal: année scolaire de l'AG ===== -->
+<div class="modal-backdrop" id="ag-year-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Année scolaire du bilan</h2>
+      <button id="ag-year-modal-close">&times;</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin:0 0 14px;">L'AG porte toujours sur l'année scolaire écoulée. Indique son année de rentrée.</p>
+    <div class="field">
+      <label>De septembre</label>
+      <input id="ag-year-input" type="number" placeholder="2025" min="2000" max="2100">
+    </div>
+    <button class="btn" id="ag-year-validate-btn">Valider</button>
+  </div>
+</div>
+
+<!-- ===== Modal: choix nouvelle entrée (Actions) ===== -->
 <div class="modal-backdrop" id="choice-modal">
   <div class="modal">
     <div class="modal-header">
@@ -413,6 +451,75 @@
       <div class="t">Nouveau don</div>
       <div class="d">Reversement d'argent à une école (livres, sortie scolaire...).</div>
     </button>
+    <button type="button" class="choice-btn" id="choice-facture">
+      <div class="t">Nouvelle facture</div>
+      <div class="d">Une facture à régler pour l'association (fournitures, prestataire...).</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Modal: menu Actions (archives) ===== -->
+<div class="modal-backdrop" id="actions-menu-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Archives des actions</h2>
+      <button id="actions-menu-close">&times;</button>
+    </div>
+    <button type="button" class="choice-btn" id="actions-menu-archive">
+      <div class="t">Archiver les actions</div>
+      <div class="d">Choisis une période scolaire : les actions correspondantes seront archivées et retirées des listes actives.</div>
+    </button>
+    <button type="button" class="choice-btn" id="actions-menu-view">
+      <div class="t">Accès aux archives</div>
+      <div class="d">Choisis une période scolaire pour consulter les actions déjà archivées.</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Modal: menu Adhésions (listes) ===== -->
+<div class="modal-backdrop" id="adh-menu-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Listes &amp; archives</h2>
+      <button id="adh-menu-close">&times;</button>
+    </div>
+    <button type="button" class="choice-btn" id="adh-menu-active">
+      <div class="t">Liste des adhérents actifs</div>
+      <div class="d">Export PDF de tous les adhérents actifs (sans moyen de paiement ni montant).</div>
+    </button>
+    <button type="button" class="choice-btn" id="adh-menu-archive">
+      <div class="t">Liste des archives</div>
+      <div class="d">Choisis une période scolaire pour exporter les adhérents archivés de cette période.</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Modal: choix d'une période scolaire ===== -->
+<div class="modal-backdrop" id="period-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="period-modal-title">Période scolaire</h2>
+      <button id="period-modal-close">&times;</button>
+    </div>
+    <p id="period-modal-desc" style="font-size:13px;color:var(--ink-soft);margin:0 0 14px;"></p>
+    <div class="field-row">
+      <div class="field"><label>Année de début</label><input id="period-start" type="number" placeholder="2024" min="2000" max="2100"></div>
+      <div class="field"><label>Année de fin</label><input id="period-end" type="number" placeholder="2025" min="2000" max="2100"></div>
+    </div>
+    <button class="btn" id="period-validate-btn">Valider</button>
+  </div>
+</div>
+
+<!-- ===== Modal: résultats archives (actions) ===== -->
+<div class="modal-backdrop" id="archive-results-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="archive-results-title">Archives</h2>
+      <button id="archive-results-close">&times;</button>
+    </div>
+    <ul class="ag-list" id="archive-results-list"></ul>
+    <div class="ag-total-line"><span>Total</span><span class="num" id="archive-results-total"></span></div>
+    <button class="btn" id="archive-results-pdf-btn" style="margin-top:16px;">Télécharger en PDF</button>
   </div>
 </div>
 
@@ -449,7 +556,7 @@
 
     <label style="display:block;font-size:12.5px;color:var(--ink-soft);font-weight:500;margin:6px 0 8px;">Dépenses</label>
     <div id="dep-rows"></div>
-    <button class="add-link" id="add-dep-btn">+ Ajouter une dépense</button>
+    <button class="add-link" id="add-dep-btn" type="button">+ Ajouter une dépense</button>
 
     <div class="field" style="margin-top:16px;">
       <label>Chiffre d'affaire (recette totale)</label>
@@ -506,6 +613,39 @@
   </div>
 </div>
 
+<!-- ===== Modal: nouvelle / edition facture ===== -->
+<div class="modal-backdrop" id="facture-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="facture-modal-title">Nouvelle facture</h2>
+      <button id="facture-modal-close">&times;</button>
+    </div>
+    <div class="field">
+      <label>Nom de la facture</label>
+      <input id="fa-nom" type="text" placeholder="Ex: Fournitures kermesse">
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Numéro de facture</label><input id="fa-numero" type="text"></div>
+      <div class="field"><label>Date</label><input id="fa-date" type="date"></div>
+    </div>
+    <div class="field">
+      <label>Montant de la facture</label>
+      <input id="fa-montant" type="number" step="0.01" placeholder="0.00">
+    </div>
+    <label style="display:block;font-size:12.5px;color:var(--ink-soft);font-weight:500;margin:6px 0 8px;">Justificatif</label>
+    <div class="dep-attach" id="fa-attach-wrap" style="margin-top:0;padding-top:0;border-top:none;margin-bottom:16px;">
+      <label class="file-label">📎 Joindre un justificatif<input type="file" accept="image/*,application/pdf" id="fa-file" style="display:none;"></label>
+      <div class="file-chip-holder"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin:4px 0 18px;font-size:14px;">
+      <input type="checkbox" id="fa-payee" style="width:17px;height:17px;">
+      Facture payée
+    </label>
+    <button class="btn" id="save-facture-btn">Enregistrer</button>
+    <button class="btn danger" id="delete-facture-btn" style="margin-top:10px;display:none;">Supprimer cette facture</button>
+  </div>
+</div>
+
 <!-- ===== Modal: nouvel / edition adherent ===== -->
 <div class="modal-backdrop" id="adh-modal">
   <div class="modal">
@@ -513,6 +653,12 @@
       <h2 id="adh-modal-title">Nouvel adhérent</h2>
       <button id="adh-modal-close">&times;</button>
     </div>
+
+    <div class="field-row">
+      <div class="field"><label>Année de rentrée</label><input id="a-annee-rentree" type="number" placeholder="2025" min="2000" max="2100"></div>
+      <div class="field"><label>Année de sortie</label><input id="a-annee-sortie" type="number" placeholder="2026" min="2000" max="2100"></div>
+    </div>
+
     <div class="field">
       <label>Groupe scolaire</label>
       <select id="a-groupe">
@@ -526,11 +672,12 @@
       <div class="field"><label>Nom</label><input id="a-nom" type="text"></div>
       <div class="field"><label>Prénom</label><input id="a-prenom" type="text"></div>
     </div>
-    <div class="field">
-      <label>Prénom(s) et classe(s) des enfants</label>
-      <textarea id="a-enfants" rows="2" placeholder="Ex: Léo (CE2), Alix (CM1)"></textarea>
-    </div>
-    <div class="field">
+
+    <label style="display:block;font-size:12.5px;color:var(--ink-soft);font-weight:500;margin:6px 0 8px;">Enfant(s)</label>
+    <div id="enfants-rows"></div>
+    <button class="add-link" id="add-enfant-btn" type="button">+ Ajouter un enfant</button>
+
+    <div class="field" style="margin-top:16px;">
       <label>Adresse</label>
       <textarea id="a-adresse" rows="2"></textarea>
     </div>
@@ -549,7 +696,11 @@
       <input id="a-montant" type="number" step="0.5" min="5" value="5">
     </div>
     <button class="btn" id="save-adh-btn">Enregistrer</button>
-    <button class="btn danger" id="delete-adh-btn" style="margin-top:10px;display:none;">Supprimer cet adhérent</button>
+
+    <div id="adh-delete-archive-zone" style="display:none;margin-top:10px;">
+      <button class="btn secondary" id="archive-adh-btn" style="margin-bottom:8px;">Archiver cet adhérent</button>
+      <button class="btn danger" id="delete-adh-btn">Supprimer définitivement</button>
+    </div>
   </div>
 </div>
 
@@ -576,8 +727,12 @@ const db = firebase.firestore();
 let actions = [];
 let adherents = [];
 let dons = [];
-let unsubActions = null, unsubAdherents = null, unsubDons = null;
-let editingActionId = null, editingAdhId = null, editingDonId = null;
+let factures = [];
+let unsubActions = null, unsubAdherents = null, unsubDons = null, unsubFactures = null;
+let editingActionId = null, editingAdhId = null, editingDonId = null, editingFactureId = null;
+let periodModalMode = null;
+let currentArchiveResults = null;
+let agSchoolYear = null;
 
 const MAX_DOC_BYTES = 900000; // marge sous la limite Firestore de 1 Mo par document
 
@@ -602,12 +757,14 @@ auth.onAuthStateChanged(user => {
     listenActions();
     listenAdherents();
     listenDons();
+    listenFactures();
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     if (unsubActions) unsubActions();
     if (unsubAdherents) unsubAdherents();
     if (unsubDons) unsubDons();
+    if (unsubFactures) unsubFactures();
   }
 });
 
@@ -634,6 +791,14 @@ function listenDons() {
     renderAG();
   });
 }
+function listenFactures() {
+  unsubFactures = db.collection('factures').orderBy('date', 'desc').onSnapshot(snap => {
+    factures = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderActions();
+    renderEnCours();
+    renderAG();
+  });
+}
 
 // ---------- Helpers ----------
 function eur(n) { return (n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }); }
@@ -650,6 +815,15 @@ function showToast(msg) {
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
+function schoolYearBounds(start, end) {
+  return { from: start + '-09-01', to: end + '-08-31' };
+}
+function isAdherentInYear(a, year) {
+  if (!a.anneeRentree && !a.anneeSortie) return true; // pas de période renseignée : on le compte par défaut
+  const rentree = Number(a.anneeRentree) || 0;
+  const sortie = Number(a.anneeSortie) || year;
+  return rentree <= year && sortie >= year;
+}
 
 // ---------- Tabs ----------
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -659,18 +833,22 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(btn.dataset.view).classList.add('active');
     document.getElementById('view-title').textContent = btn.textContent.trim();
-    document.getElementById('fab-add').style.display = (btn.dataset.view === 'view-ag' || btn.dataset.view === 'view-encours') ? 'none' : 'flex';
+    const view = btn.dataset.view;
+    document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours') ? 'none' : 'flex';
+    document.getElementById('fab-menu').style.display = (view === 'view-actions' || view === 'view-adhesion') ? 'flex' : 'none';
+    if (view === 'view-ag' && agSchoolYear === null) openAgYearModal();
   });
 });
 
-// ---------- Render: Actions + Dons (liste combinée) ----------
+// ---------- Render: Actions + Dons + Factures (liste combinée) ----------
 function renderActions() {
   const list = document.getElementById('actions-list');
   const empty = document.getElementById('actions-empty');
   list.innerHTML = '';
 
+  const activeActions = actions.filter(a => !a.archive);
   let total = 0, pending = 0;
-  actions.forEach(a => {
+  activeActions.forEach(a => {
     const benef = beneficeOf(a);
     total += benef;
     if (!a.depose) pending += benef;
@@ -679,23 +857,31 @@ function renderActions() {
   document.getElementById('stat-pending').textContent = eur(pending);
 
   const combined = [
-    ...actions.map(a => ({ kind: 'action', data: a })),
-    ...dons.map(d => ({ kind: 'don', data: d }))
+    ...activeActions.map(a => ({ kind: 'action', data: a })),
+    ...dons.map(d => ({ kind: 'don', data: d })),
+    ...factures.map(f => ({ kind: 'facture', data: f }))
   ].sort((x, y) => (y.data.date || '').localeCompare(x.data.date || ''));
 
   empty.style.display = combined.length ? 'none' : 'block';
   combined.forEach(item => {
-    list.appendChild(item.kind === 'action' ? actionRow(item.data, beneficeOf(item.data)) : donRow(item.data));
+    if (item.kind === 'action') list.appendChild(actionRow(item.data, beneficeOf(item.data)));
+    else if (item.kind === 'don') list.appendChild(donRow(item.data));
+    else list.appendChild(factureRow(item.data));
   });
 }
 
 function renderEnCours() {
   const list = document.getElementById('encours-list');
   const empty = document.getElementById('encours-empty');
-  const pending = actions.filter(a => !a.depose);
+  const pendingActions = actions.filter(a => !a.depose && !a.archive);
+  const pendingFactures = factures.filter(f => !f.payee);
+  const combined = [
+    ...pendingActions.map(a => ({ kind: 'action', data: a })),
+    ...pendingFactures.map(f => ({ kind: 'facture', data: f }))
+  ].sort((x, y) => (y.data.date || '').localeCompare(x.data.date || ''));
   list.innerHTML = '';
-  empty.style.display = pending.length ? 'none' : 'block';
-  pending.forEach(a => list.appendChild(actionRow(a, beneficeOf(a))));
+  empty.style.display = combined.length ? 'none' : 'block';
+  combined.forEach(item => list.appendChild(item.kind === 'action' ? actionRow(item.data, beneficeOf(item.data)) : factureRow(item.data)));
 }
 
 function actionRow(a, benef) {
@@ -734,33 +920,84 @@ function donRow(d) {
   return row;
 }
 
+function factureRow(f) {
+  const row = document.createElement('div');
+  row.className = 'action-item' + (f.payee ? '' : ' is-pending');
+  const dateStr = f.date ? new Date(f.date).toLocaleDateString('fr-FR') : '';
+  row.innerHTML = `
+    <div class="left">
+      <span class="type-tag ${f.payee ? '' : 'pending'}">Facture</span>
+      <div class="name">${escapeHtml(f.nom || '')}</div>
+      <div class="date">${dateStr}${f.numero ? ' · N° ' + escapeHtml(f.numero) : ''}</div>
+    </div>
+    <div class="right">
+      <div class="benef num neg">− ${eur(f.montant)}</div>
+      <div class="status">${f.payee ? 'Payée' : 'À payer'}</div>
+    </div>`;
+  row.addEventListener('click', () => openFactureModal(f));
+  return row;
+}
+
 // ---------- Render: Adherents ----------
 function renderAdherents() {
   const list = document.getElementById('adherents-list');
   const empty = document.getElementById('adherents-empty');
   list.innerHTML = '';
-  empty.style.display = adherents.length ? 'none' : 'block';
-  adherents.forEach(a => {
+  const active = adherents.filter(a => !a.archive);
+  empty.style.display = active.length ? 'none' : 'block';
+  active.forEach(a => {
     const row = document.createElement('div');
     row.className = 'adh-item';
+    const enfantsStr = (a.enfants || []).map(e => `${e.prenom || ''}${e.classe ? ' (' + e.classe + ')' : ''}`).filter(Boolean).join(', ');
+    const periode = (a.anneeRentree || a.anneeSortie) ? `${a.anneeRentree || '?'}–${a.anneeSortie || '?'}` : '';
     row.innerHTML = `
       <div class="name">${escapeHtml(a.prenom || '')} ${escapeHtml(a.nom || '')}</div>
-      <div class="meta">${escapeHtml(a.groupeScolaire || '')}${a.enfants ? ' · ' + escapeHtml(a.enfants) : ''}</div>
+      <div class="meta">${escapeHtml(a.groupeScolaire || '')}${periode ? ' · ' + escapeHtml(periode) : ''}</div>
+      ${enfantsStr ? `<div class="meta">${escapeHtml(enfantsStr)}</div>` : ''}
       <div class="meta">${escapeHtml(a.email || '')}${a.telephone ? ' · ' + escapeHtml(a.telephone) : ''} · ${escapeHtml(a.moyenPaiement || '')} · <span class="num">${eur(a.montant)}</span></div>`;
     row.addEventListener('click', () => openAdhModal(a));
     list.appendChild(row);
   });
 }
 
+function openAgYearModal() {
+  document.getElementById('ag-year-input').value = agSchoolYear || '';
+  document.getElementById('ag-year-modal').classList.add('active');
+}
+document.getElementById('ag-year-modal-close').addEventListener('click', () => document.getElementById('ag-year-modal').classList.remove('active'));
+document.getElementById('ag-change-year-btn').addEventListener('click', openAgYearModal);
+document.getElementById('ag-year-validate-btn').addEventListener('click', () => {
+  const y = parseInt(document.getElementById('ag-year-input').value, 10);
+  if (!y) { showToast('Indique une année valide.'); return; }
+  agSchoolYear = y;
+  document.getElementById('ag-year-modal').classList.remove('active');
+  renderAG();
+});
+
 // ---------- Render: AG ----------
 function renderAG() {
-  const totalActions = actions.reduce((s, a) => s + beneficeOf(a), 0);
-  const totalCotisations = adherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
-  const totalDons = dons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
-  const grandTotal = totalActions + totalCotisations - totalDons;
+  const yearLabel = document.getElementById('ag-year-label');
+  if (agSchoolYear === null) {
+    yearLabel.textContent = 'Aucune année scolaire sélectionnée.';
+    document.getElementById('ag-content').innerHTML = '';
+    return;
+  }
+  yearLabel.textContent = `Année scolaire ${agSchoolYear}–${agSchoolYear + 1}`;
+  const { from, to } = schoolYearBounds(agSchoolYear, agSchoolYear + 1);
+
+  const yearActions = actions.filter(a => a.date && a.date >= from && a.date <= to);
+  const yearFactures = factures.filter(f => f.date && f.date >= from && f.date <= to);
+  const yearDons = dons.filter(d => d.date && d.date >= from && d.date <= to);
+  const yearAdherents = adherents.filter(a => isAdherentInYear(a, agSchoolYear));
+
+  const totalActions = yearActions.reduce((s, a) => s + beneficeOf(a), 0);
+  const totalFactures = yearFactures.reduce((s, f) => s + (Number(f.montant) || 0), 0);
+  const totalCotisations = yearAdherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
+  const totalDons = yearDons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
+  const grandTotal = totalActions - totalFactures + totalCotisations - totalDons;
 
   let html = '<div class="ag-section-title">Actions</div><ul class="ag-list">';
-  const sortedActions = actions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedActions = yearActions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   if (!sortedActions.length) html += '<li><span style="color:var(--ink-soft);">Aucune action.</span><span></span></li>';
   sortedActions.forEach(a => {
     const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
@@ -770,8 +1007,18 @@ function renderAG() {
   html += `<li><span><strong>Sous-total actions</strong></span><span class="num ${totalActions >= 0 ? 'pos' : 'neg'}"><strong>${eur(totalActions)}</strong></span></li>`;
   html += '</ul>';
 
+  html += '<div class="ag-section-title">Factures</div><ul class="ag-list">';
+  const sortedFactures = yearFactures.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  if (!sortedFactures.length) html += '<li><span style="color:var(--ink-soft);">Aucune facture.</span><span></span></li>';
+  sortedFactures.forEach(f => {
+    const dateStr = f.date ? new Date(f.date).toLocaleDateString('fr-FR') : '—';
+    html += `<li><span>${dateStr} — ${escapeHtml(f.nom || '')}${f.numero ? ' (N° ' + escapeHtml(f.numero) + ')' : ''}</span><span class="num neg">− ${eur(f.montant)}</span></li>`;
+  });
+  html += `<li><span><strong>Sous-total factures</strong></span><span class="num neg"><strong>− ${eur(totalFactures)}</strong></span></li>`;
+  html += '</ul>';
+
   html += '<div class="ag-section-title">Dons aux écoles</div><ul class="ag-list">';
-  const sortedDons = dons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedDons = yearDons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   if (!sortedDons.length) html += '<li><span style="color:var(--ink-soft);">Aucun don.</span><span></span></li>';
   sortedDons.forEach(d => {
     const dateStr = d.date ? new Date(d.date).toLocaleDateString('fr-FR') : '—';
@@ -780,14 +1027,70 @@ function renderAG() {
   html += `<li><span><strong>Sous-total dons</strong></span><span class="num neg"><strong>− ${eur(totalDons)}</strong></span></li>`;
   html += '</ul>';
 
-  html += `<div class="ag-section-title">Adhésions</div><ul class="ag-list"><li><span>${adherents.length} adhésion${adherents.length > 1 ? 's' : ''}</span><span class="num pos">${eur(totalCotisations)}</span></li></ul>`;
+  html += `<div class="ag-section-title">Adhésions</div><ul class="ag-list"><li><span>${yearAdherents.length} adhésion${yearAdherents.length > 1 ? 's' : ''}</span><span class="num pos">${eur(totalCotisations)}</span></li></ul>`;
 
   html += `<div class="ag-total-line"><span>Bilan net de l'association</span><span class="num ${grandTotal >= 0 ? 'pos' : 'neg'}">${eur(grandTotal)}</span></div>`;
 
   document.getElementById('ag-content').innerHTML = html;
 }
 
-// ---------- Modal: choix ----------
+// ---------- Fichiers (justificatifs, stockés en base64 dans Firestore) ----------
+function renderFileChip(block) {
+  const holder = block.querySelector('.file-chip-holder');
+  const data = block.dataset.justifData;
+  if (!data) { holder.innerHTML = ''; return; }
+  const isImg = (block.dataset.justifMime || '').startsWith('image/');
+  holder.innerHTML = `
+    <span class="file-chip">
+      ${isImg ? `<img src="${data}" alt="">` : '📄'}
+      <span>${escapeHtml(block.dataset.justifNom || 'Justificatif')}</span>
+      <button type="button" title="Retirer">&times;</button>
+    </span>
+    <a href="${data}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ink-soft);text-decoration:underline;">Voir</a>`;
+  holder.querySelector('.file-chip button').addEventListener('click', () => {
+    block.dataset.justifData = '';
+    block.dataset.justifNom = '';
+    block.dataset.justifMime = '';
+    renderFileChip(block);
+  });
+}
+
+function fileToStorable(file) {
+  return new Promise((resolve, reject) => {
+    if (file.type === 'application/pdf') {
+      if (file.size > 900 * 1024) { reject(new Error('PDF trop volumineux (max ~900 Ko).')); return; }
+      const reader = new FileReader();
+      reader.onload = () => resolve({ dataUrl: reader.result, mime: file.type });
+      reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+      reader.readAsDataURL(file);
+      return;
+    }
+    if (!file.type.startsWith('image/')) { reject(new Error('Formats acceptés : image ou PDF.')); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1400;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          const ratio = Math.min(maxDim / width, maxDim / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.6), mime: 'image/jpeg' });
+      };
+      img.onerror = () => reject(new Error('Image illisible.'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Modal: choix (fab droit = actions) ----------
 document.getElementById('fab-add').addEventListener('click', () => {
   const activeView = document.querySelector('.view.active').id;
   if (activeView === 'view-adhesion') { openAdhModal(null); return; }
@@ -802,6 +1105,162 @@ document.getElementById('choice-don').addEventListener('click', () => {
   document.getElementById('choice-modal').classList.remove('active');
   openDonModal(null);
 });
+document.getElementById('choice-facture').addEventListener('click', () => {
+  document.getElementById('choice-modal').classList.remove('active');
+  openFactureModal(null);
+});
+
+// ---------- Modal: menu gauche (archives) ----------
+document.getElementById('fab-menu').addEventListener('click', () => {
+  const activeView = document.querySelector('.view.active').id;
+  if (activeView === 'view-actions') document.getElementById('actions-menu-modal').classList.add('active');
+  else if (activeView === 'view-adhesion') document.getElementById('adh-menu-modal').classList.add('active');
+});
+document.getElementById('actions-menu-close').addEventListener('click', () => document.getElementById('actions-menu-modal').classList.remove('active'));
+document.getElementById('adh-menu-close').addEventListener('click', () => document.getElementById('adh-menu-modal').classList.remove('active'));
+
+document.getElementById('actions-menu-archive').addEventListener('click', () => {
+  document.getElementById('actions-menu-modal').classList.remove('active');
+  openPeriodModal('archive-actions');
+});
+document.getElementById('actions-menu-view').addEventListener('click', () => {
+  document.getElementById('actions-menu-modal').classList.remove('active');
+  openPeriodModal('view-actions-archive');
+});
+document.getElementById('adh-menu-active').addEventListener('click', () => {
+  document.getElementById('adh-menu-modal').classList.remove('active');
+  generateAdherentsPdf(adherents.filter(a => !a.archive), 'Liste des adhérents actifs');
+});
+document.getElementById('adh-menu-archive').addEventListener('click', () => {
+  document.getElementById('adh-menu-modal').classList.remove('active');
+  openPeriodModal('view-adherents-archive');
+});
+
+// ---------- Modal: période scolaire ----------
+function openPeriodModal(mode) {
+  periodModalMode = mode;
+  const cfg = {
+    'archive-actions': { title: 'Archiver les actions', desc: "Les actions de la période seront archivées et retirées des listes actives." },
+    'view-actions-archive': { title: 'Accès aux archives', desc: "Affiche les actions archivées de la période demandée." },
+    'view-adherents-archive': { title: 'Liste des archives', desc: "Génère un PDF des adhérents archivés de la période demandée." }
+  }[mode];
+  document.getElementById('period-modal-title').textContent = cfg.title;
+  document.getElementById('period-modal-desc').textContent = cfg.desc;
+  document.getElementById('period-start').value = '';
+  document.getElementById('period-end').value = '';
+  document.getElementById('period-modal').classList.add('active');
+}
+document.getElementById('period-modal-close').addEventListener('click', () => document.getElementById('period-modal').classList.remove('active'));
+document.getElementById('period-validate-btn').addEventListener('click', () => {
+  const start = parseInt(document.getElementById('period-start').value, 10);
+  const end = parseInt(document.getElementById('period-end').value, 10);
+  if (!start || !end || end < start) { showToast('Renseigne deux années valides.'); return; }
+  document.getElementById('period-modal').classList.remove('active');
+  if (periodModalMode === 'archive-actions') archiveActionsForPeriod(start, end);
+  else if (periodModalMode === 'view-actions-archive') showActionsArchiveForPeriod(start, end);
+  else if (periodModalMode === 'view-adherents-archive') exportAdherentsArchivePdf(start, end);
+});
+
+function archiveActionsForPeriod(start, end) {
+  const { from, to } = schoolYearBounds(start, end);
+  const matching = actions.filter(a => a.date && a.date >= from && a.date <= to && !a.archive);
+  if (!matching.length) { showToast('Aucune action dans cette période.'); return; }
+  if (!confirm(`Archiver ${matching.length} action(s) de la période ${start}–${end} ?`)) return;
+  const batch = db.batch();
+  matching.forEach(a => batch.update(db.collection('actions').doc(a.id), { archive: true }));
+  batch.commit().then(() => showToast('Actions archivées.')).catch(() => showToast("Erreur lors de l'archivage."));
+}
+
+function showActionsArchiveForPeriod(start, end) {
+  const { from, to } = schoolYearBounds(start, end);
+  const matches = actions.filter(a => a.archive && a.date >= from && a.date <= to).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  currentArchiveResults = { start, end, matches };
+  const list = document.getElementById('archive-results-list');
+  list.innerHTML = '';
+  let total = 0;
+  if (!matches.length) list.innerHTML = '<li><span style="color:var(--ink-soft);">Aucune action archivée sur cette période.</span><span></span></li>';
+  matches.forEach(a => {
+    const benef = beneficeOf(a); total += benef;
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${dateStr} — ${escapeHtml(a.nom || '')}</span><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span>`;
+    list.appendChild(li);
+  });
+  document.getElementById('archive-results-title').textContent = `Actions archivées ${start}–${end}`;
+  const totalEl = document.getElementById('archive-results-total');
+  totalEl.textContent = eur(total);
+  totalEl.className = 'num ' + (total >= 0 ? 'pos' : 'neg');
+  document.getElementById('archive-results-modal').classList.add('active');
+}
+document.getElementById('archive-results-close').addEventListener('click', () => document.getElementById('archive-results-modal').classList.remove('active'));
+document.getElementById('archive-results-pdf-btn').addEventListener('click', () => {
+  if (!currentArchiveResults) return;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 18;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text(`Actions archivées ${currentArchiveResults.start}–${currentArchiveResults.end}`, 14, y); y += 7;
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  doc.text('Amis des Écoles — ' + new Date().toLocaleDateString('fr-FR'), 14, y); y += 12;
+  let total = 0;
+  doc.setFont('helvetica', 'bold'); doc.text('Date', 14, y); doc.text('Action', 50, y); doc.text('Bénéfice', 196, y, { align: 'right' }); y += 3;
+  doc.setLineWidth(0.3); doc.line(14, y, 196, y); y += 6;
+  doc.setFont('helvetica', 'normal');
+  currentArchiveResults.matches.forEach(a => {
+    if (y > 280) { doc.addPage(); y = 20; }
+    const benef = beneficeOf(a); total += benef;
+    const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
+    doc.text(dateStr, 14, y);
+    doc.text((a.nom || '').slice(0, 55), 50, y);
+    doc.text(eur(benef), 196, y, { align: 'right' });
+    y += 7;
+  });
+  if (!currentArchiveResults.matches.length) { doc.text('Aucune action sur cette période.', 14, y); y += 7; }
+  y += 3; doc.setLineWidth(0.5); doc.line(14, y, 196, y); y += 8;
+  doc.setFont('helvetica', 'bold');
+  doc.text('Total', 14, y);
+  doc.text(eur(total), 196, y, { align: 'right' });
+  doc.save(`actions-archivees-${currentArchiveResults.start}-${currentArchiveResults.end}.pdf`);
+  showToast('PDF prêt — choisis où l\'enregistrer.');
+});
+
+function generateAdherentsPdf(list, title) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 18;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
+  doc.text(title, 14, y); y += 6;
+  doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+  doc.text('Amis des Écoles — ' + new Date().toLocaleDateString('fr-FR'), 14, y); y += 10;
+
+  const sorted = list.slice().sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  if (!sorted.length) { doc.text('Aucun adhérent.', 14, y); }
+  sorted.forEach(a => {
+    if (y > 265) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(11);
+    doc.text(`${a.prenom || ''} ${a.nom || ''}`.trim() || 'Sans nom', 14, y); y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+    const periode = (a.anneeRentree || a.anneeSortie) ? `Période : ${a.anneeRentree || '?'} – ${a.anneeSortie || '?'}` : '';
+    const groupe = a.groupeScolaire ? `Groupe scolaire : ${a.groupeScolaire}` : '';
+    const line1 = [groupe, periode].filter(Boolean).join('   ·   ');
+    if (line1) { doc.text(line1, 14, y); y += 5; }
+    const enfants = (a.enfants || []).filter(e => e.prenom || e.classe).map(e => `${e.prenom || ''}${e.classe ? ' (' + e.classe + ')' : ''}`).join(', ');
+    if (enfants) { doc.text('Enfants : ' + enfants, 14, y); y += 5; }
+    if (a.adresse) { doc.text('Adresse : ' + a.adresse.replace(/\n/g, ' '), 14, y); y += 5; }
+    const contact = [a.email, a.telephone].filter(Boolean).join('   ·   ');
+    if (contact) { doc.text(contact, 14, y); y += 5; }
+    y += 3;
+    doc.setDrawColor(200);
+    doc.line(14, y, 196, y); y += 6;
+  });
+  doc.save(title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-') + '.pdf');
+  showToast('PDF prêt — choisis où l\'enregistrer.');
+}
+
+function exportAdherentsArchivePdf(start, end) {
+  const matches = adherents.filter(a => a.archive && (Number(a.anneeRentree) || 0) <= end && (Number(a.anneeSortie) || end) >= start);
+  generateAdherentsPdf(matches, `Archives adhérents ${start}-${end}`);
+}
 
 // ---------- Modal: Action ----------
 const actionModal = document.getElementById('action-modal');
@@ -863,61 +1322,6 @@ function addDepRow(dep) {
   });
 
   document.getElementById('dep-rows').appendChild(block);
-}
-
-function renderFileChip(block) {
-  const holder = block.querySelector('.file-chip-holder');
-  const data = block.dataset.justifData;
-  if (!data) { holder.innerHTML = ''; return; }
-  const isImg = (block.dataset.justifMime || '').startsWith('image/');
-  holder.innerHTML = `
-    <span class="file-chip">
-      ${isImg ? `<img src="${data}" alt="">` : '📄'}
-      <span>${escapeHtml(block.dataset.justifNom || 'Justificatif')}</span>
-      <button type="button" title="Retirer">&times;</button>
-    </span>
-    <a href="${data}" target="_blank" rel="noopener" style="font-size:12px;color:var(--ink-soft);text-decoration:underline;">Voir</a>`;
-  holder.querySelector('.file-chip button').addEventListener('click', () => {
-    block.dataset.justifData = '';
-    block.dataset.justifNom = '';
-    block.dataset.justifMime = '';
-    renderFileChip(block);
-  });
-}
-
-function fileToStorable(file) {
-  return new Promise((resolve, reject) => {
-    if (file.type === 'application/pdf') {
-      if (file.size > 900 * 1024) { reject(new Error('PDF trop volumineux (max ~900 Ko).')); return; }
-      const reader = new FileReader();
-      reader.onload = () => resolve({ dataUrl: reader.result, mime: file.type });
-      reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
-      reader.readAsDataURL(file);
-      return;
-    }
-    if (!file.type.startsWith('image/')) { reject(new Error('Formats acceptés : image ou PDF.')); return; }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        const maxDim = 1400;
-        let { width, height } = img;
-        if (width > maxDim || height > maxDim) {
-          const ratio = Math.min(maxDim / width, maxDim / height);
-          width = Math.round(width * ratio);
-          height = Math.round(height * ratio);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.6), mime: 'image/jpeg' });
-      };
-      img.onerror = () => reject(new Error('Image illisible.'));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error('Lecture du fichier impossible.'));
-    reader.readAsDataURL(file);
-  });
 }
 
 document.getElementById('add-dep-btn').addEventListener('click', () => addDepRow(null));
@@ -1012,23 +1416,124 @@ document.getElementById('delete-don-btn').addEventListener('click', () => {
   });
 });
 
+// ---------- Modal: Facture ----------
+const factureModal = document.getElementById('facture-modal');
+document.getElementById('facture-modal-close').addEventListener('click', () => factureModal.classList.remove('active'));
+
+function openFactureModal(f) {
+  editingFactureId = f ? f.id : null;
+  document.getElementById('facture-modal-title').textContent = f ? 'Modifier la facture' : 'Nouvelle facture';
+  document.getElementById('fa-nom').value = f?.nom || '';
+  document.getElementById('fa-numero').value = f?.numero || '';
+  document.getElementById('fa-date').value = f?.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('fa-montant').value = f?.montant ?? '';
+  document.getElementById('fa-payee').checked = !!f?.payee;
+  const wrap = document.getElementById('fa-attach-wrap');
+  wrap.dataset.justifData = f?.justificatifData || '';
+  wrap.dataset.justifNom = f?.justificatifNom || '';
+  wrap.dataset.justifMime = f?.justificatifMime || '';
+  renderFileChip(wrap);
+  document.getElementById('delete-facture-btn').style.display = f ? 'block' : 'none';
+  factureModal.classList.add('active');
+}
+
+document.getElementById('fa-file').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const wrap = document.getElementById('fa-attach-wrap');
+  showToast('Traitement du fichier...');
+  try {
+    const result = await fileToStorable(file);
+    wrap.dataset.justifData = result.dataUrl;
+    wrap.dataset.justifNom = file.name;
+    wrap.dataset.justifMime = result.mime;
+    renderFileChip(wrap);
+  } catch (err) {
+    showToast(err && err.message ? err.message : "Impossible de traiter ce fichier.");
+  }
+});
+
+document.getElementById('save-facture-btn').addEventListener('click', () => {
+  const nom = document.getElementById('fa-nom').value.trim();
+  const montant = parseFloat(document.getElementById('fa-montant').value) || 0;
+  if (!nom) { showToast('Donne un nom à cette facture.'); return; }
+  if (montant <= 0) { showToast('Indique un montant pour cette facture.'); return; }
+  const wrap = document.getElementById('fa-attach-wrap');
+  const payload = {
+    nom,
+    numero: document.getElementById('fa-numero').value.trim(),
+    date: document.getElementById('fa-date').value,
+    montant,
+    payee: document.getElementById('fa-payee').checked,
+    justificatifData: wrap.dataset.justifData || '',
+    justificatifNom: wrap.dataset.justifNom || '',
+    justificatifMime: wrap.dataset.justifMime || ''
+  };
+  if (JSON.stringify(payload).length > MAX_DOC_BYTES) {
+    showToast('Le justificatif est trop volumineux.');
+    return;
+  }
+  const promise = editingFactureId
+    ? db.collection('factures').doc(editingFactureId).set(payload, { merge: true })
+    : db.collection('factures').add(payload);
+  promise.then(() => { factureModal.classList.remove('active'); showToast('Facture enregistrée.'); })
+         .catch(() => showToast('Erreur d\'enregistrement.'));
+});
+
+document.getElementById('delete-facture-btn').addEventListener('click', () => {
+  if (!editingFactureId) return;
+  if (!confirm('Supprimer définitivement cette facture ?')) return;
+  db.collection('factures').doc(editingFactureId).delete().then(() => {
+    factureModal.classList.remove('active');
+    showToast('Facture supprimée.');
+  });
+});
+
 // ---------- Modal: Adherent ----------
 const adhModal = document.getElementById('adh-modal');
 document.getElementById('adh-modal-close').addEventListener('click', () => adhModal.classList.remove('active'));
 
+function addEnfantRow(enfant) {
+  const row = document.createElement('div');
+  row.className = 'dep-row';
+  row.style.marginBottom = '8px';
+  row.innerHTML = `
+    <div class="field"><label>Prénom</label><input type="text" class="enfant-prenom" value="${enfant?.prenom ? escapeHtml(enfant.prenom) : ''}"></div>
+    <div class="field"><label>Classe</label><input type="text" class="enfant-classe" value="${enfant?.classe ? escapeHtml(enfant.classe) : ''}"></div>
+    <button type="button" class="icon-btn" title="Supprimer">&times;</button>`;
+  row.querySelector('.icon-btn').addEventListener('click', () => row.remove());
+  document.getElementById('enfants-rows').appendChild(row);
+}
+document.getElementById('add-enfant-btn').addEventListener('click', () => addEnfantRow(null));
+
+function readEnfants() {
+  return [...document.querySelectorAll('#enfants-rows .dep-row')].map(row => ({
+    prenom: row.querySelector('.enfant-prenom').value.trim(),
+    classe: row.querySelector('.enfant-classe').value.trim()
+  })).filter(e => e.prenom || e.classe);
+}
+
 function openAdhModal(adh) {
   editingAdhId = adh ? adh.id : null;
   document.getElementById('adh-modal-title').textContent = adh ? 'Modifier l\'adhérent' : 'Nouvel adhérent';
+  document.getElementById('a-annee-rentree').value = adh?.anneeRentree || '';
+  document.getElementById('a-annee-sortie').value = adh?.anneeSortie || '';
   document.getElementById('a-groupe').value = adh?.groupeScolaire || 'A. Lassagne';
   document.getElementById('a-nom').value = adh?.nom || '';
   document.getElementById('a-prenom').value = adh?.prenom || '';
-  document.getElementById('a-enfants').value = adh?.enfants || '';
   document.getElementById('a-adresse').value = adh?.adresse || '';
   document.getElementById('a-email').value = adh?.email || '';
   document.getElementById('a-tel').value = adh?.telephone || '';
   document.getElementById('a-paiement').value = adh?.moyenPaiement || 'Espèce';
   document.getElementById('a-montant').value = adh?.montant ?? 5;
-  document.getElementById('delete-adh-btn').style.display = adh ? 'block' : 'none';
+
+  const enfantsRows = document.getElementById('enfants-rows');
+  enfantsRows.innerHTML = '';
+  (adh?.enfants || []).forEach(e => addEnfantRow(e));
+  if (!enfantsRows.children.length) addEnfantRow(null);
+
+  document.getElementById('adh-delete-archive-zone').style.display = adh ? 'block' : 'none';
   adhModal.classList.add('active');
 }
 
@@ -1039,22 +1544,32 @@ document.getElementById('save-adh-btn').addEventListener('click', () => {
   if (!nom || !prenom) { showToast('Renseigne au moins le nom et le prénom.'); return; }
   if (montant < 5) { showToast('Le montant minimum de l\'adhésion est 5 €.'); return; }
   const payload = {
+    anneeRentree: document.getElementById('a-annee-rentree').value.trim(),
+    anneeSortie: document.getElementById('a-annee-sortie').value.trim(),
     groupeScolaire: document.getElementById('a-groupe').value,
     nom, prenom,
-    enfants: document.getElementById('a-enfants').value.trim(),
+    enfants: readEnfants(),
     adresse: document.getElementById('a-adresse').value.trim(),
     email: document.getElementById('a-email').value.trim(),
     telephone: document.getElementById('a-tel').value.trim(),
     moyenPaiement: document.getElementById('a-paiement').value,
-    montant,
-    dateAdhesion: editingAdhId ? undefined : new Date().toISOString().slice(0, 10)
+    montant
   };
-  if (payload.dateAdhesion === undefined) delete payload.dateAdhesion;
+  if (!editingAdhId) payload.dateAdhesion = new Date().toISOString().slice(0, 10);
   const promise = editingAdhId
     ? db.collection('adherents').doc(editingAdhId).set(payload, { merge: true })
     : db.collection('adherents').add(payload);
   promise.then(() => { adhModal.classList.remove('active'); showToast('Adhérent enregistré.'); })
          .catch(() => showToast('Erreur d\'enregistrement.'));
+});
+
+document.getElementById('archive-adh-btn').addEventListener('click', () => {
+  if (!editingAdhId) return;
+  if (!confirm('Archiver cet adhérent ? Il disparaîtra de la liste active.')) return;
+  db.collection('adherents').doc(editingAdhId).set({ archive: true }, { merge: true }).then(() => {
+    adhModal.classList.remove('active');
+    showToast('Adhérent archivé.');
+  });
 });
 
 document.getElementById('delete-adh-btn').addEventListener('click', () => {
@@ -1068,6 +1583,7 @@ document.getElementById('delete-adh-btn').addEventListener('click', () => {
 
 // ---------- PDF export (Assemblée Générale) ----------
 document.getElementById('generate-pdf-btn').addEventListener('click', () => {
+  if (agSchoolYear === null) { openAgYearModal(); return; }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   let y = 18;
@@ -1078,7 +1594,7 @@ document.getElementById('generate-pdf-btn').addEventListener('click', () => {
   y += 7;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text('Assemblée générale — ' + new Date().toLocaleDateString('fr-FR'), 14, y);
+  doc.text(`Année scolaire ${agSchoolYear}–${agSchoolYear + 1} — Assemblée générale du ` + new Date().toLocaleDateString('fr-FR'), 14, y);
   y += 12;
 
   function sectionHeader(title) {
@@ -1098,12 +1614,19 @@ document.getElementById('generate-pdf-btn').addEventListener('click', () => {
     y += 7;
   }
 
-  const sortedActions = actions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const sortedDons = dons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  const totalActions = actions.reduce((s, a) => s + beneficeOf(a), 0);
-  const totalCotisations = adherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
-  const totalDons = dons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
-  const grandTotal = totalActions + totalCotisations - totalDons;
+  const { from, to } = schoolYearBounds(agSchoolYear, agSchoolYear + 1);
+  const yearActions = actions.filter(a => a.date && a.date >= from && a.date <= to);
+  const yearFactures = factures.filter(f => f.date && f.date >= from && f.date <= to);
+  const yearDons = dons.filter(d => d.date && d.date >= from && d.date <= to);
+  const yearAdherents = adherents.filter(a => isAdherentInYear(a, agSchoolYear));
+  const sortedActions = yearActions.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedFactures = yearFactures.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const sortedDons = yearDons.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  const totalActions = yearActions.reduce((s, a) => s + beneficeOf(a), 0);
+  const totalFactures = yearFactures.reduce((s, f) => s + (Number(f.montant) || 0), 0);
+  const totalCotisations = yearAdherents.reduce((s, a) => s + (Number(a.montant) || 0), 0);
+  const totalDons = yearDons.reduce((s, d) => s + (Number(d.montant) || 0), 0);
+  const grandTotal = totalActions - totalFactures + totalCotisations - totalDons;
 
   sectionHeader('Actions');
   if (!sortedActions.length) row('Aucune action', '');
@@ -1112,6 +1635,15 @@ document.getElementById('generate-pdf-btn').addEventListener('click', () => {
     row(dateStr + ' — ' + (a.nom || ''), eur(beneficeOf(a)));
   });
   row('Sous-total actions', eur(totalActions), true);
+  y += 5;
+
+  sectionHeader('Factures');
+  if (!sortedFactures.length) row('Aucune facture', '');
+  sortedFactures.forEach(f => {
+    const dateStr = f.date ? new Date(f.date).toLocaleDateString('fr-FR') : '—';
+    row(dateStr + ' — ' + (f.nom || '') + (f.numero ? ' (N° ' + f.numero + ')' : ''), '− ' + eur(f.montant));
+  });
+  row('Sous-total factures', '− ' + eur(totalFactures), true);
   y += 5;
 
   sectionHeader('Dons aux écoles');
@@ -1125,7 +1657,7 @@ document.getElementById('generate-pdf-btn').addEventListener('click', () => {
   y += 5;
 
   sectionHeader('Adhésions');
-  row(adherents.length + ' adhésion(s)', eur(totalCotisations), true);
+  row(yearAdherents.length + ' adhésion(s)', eur(totalCotisations), true);
   y += 5;
 
   if (y > 270) { doc.addPage(); y = 20; }
@@ -1137,7 +1669,7 @@ document.getElementById('generate-pdf-btn').addEventListener('click', () => {
   doc.text('Bilan net de l\'association', 14, y);
   doc.text(eur(grandTotal), 196, y, { align: 'right' });
 
-  doc.save('bilan-AG-' + new Date().toISOString().slice(0, 10) + '.pdf');
+  doc.save(`bilan-AG-${agSchoolYear}-${agSchoolYear + 1}.pdf`);
   showToast('PDF prêt — choisis où l\'enregistrer.');
 });
 </script>
