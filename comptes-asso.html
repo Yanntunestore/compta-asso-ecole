@@ -350,7 +350,7 @@
 <!-- ===== App ===== -->
 <div id="app">
   <header class="top">
-    <span class="version-badge">v4</span>
+    <span class="version-badge">v4.1</span>
     <div class="row">
       <div>
         <div class="eyebrow">Association des Amis des Écoles</div>
@@ -399,8 +399,17 @@
         <div id="ag-content"></div>
       </div>
     </section>
-  </main>
 
+    <!-- ARCHIVES RAPPELÉES (temporaire) -->
+    <section class="view" id="view-archives-temp">
+      <div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <span style="font-size:13px;color:var(--ink-soft);">Fiches archivées rappelées temporairement pour consultation — ceci n'est pas permanent.</span>
+        <button class="btn secondary small" id="clear-recalled-btn" type="button">Fermer</button>
+      </div>
+      <div id="recalled-actions-list"></div>
+      <div id="recalled-adherents-list"></div>
+    </section>
+  </main>
   <button class="fab fab-right" id="fab-add">+</button>
   <button class="fab fab-left" id="fab-menu" title="Listes et archives">
     <svg viewBox="0 0 24 24" width="20" height="20"><rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="#fff" stroke-width="2"/></svg>
@@ -422,6 +431,10 @@
     <button class="tab-btn" data-view="view-ag">
       <svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h6M9 16h6M9 8h3"/></svg>
       AG
+    </button>
+    <button class="tab-btn" data-view="view-archives-temp" id="tab-archives-temp" style="display:none;">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v4H4z"/><path d="M6 8v11h12V8M10 12h4"/></svg>
+      Archives
     </button>
   </nav>
 </div>
@@ -479,7 +492,7 @@
     </button>
     <button type="button" class="choice-btn" id="actions-menu-view">
       <div class="t">Accès aux archives</div>
-      <div class="d">Choisis une période scolaire pour consulter les actions déjà archivées.</div>
+      <div class="d">Choisis une période scolaire pour consulter les actions archivées : rappel temporaire (avec justificatifs) ou export PDF.</div>
     </button>
   </div>
 </div>
@@ -497,7 +510,7 @@
     </button>
     <button type="button" class="choice-btn" id="adh-menu-archive">
       <div class="t">Liste des archives</div>
-      <div class="d">Choisis une période scolaire pour exporter les adhérents archivés de cette période.</div>
+      <div class="d">Choisis une période scolaire pour retrouver les adhérents archivés : consultation, rappel temporaire ou export PDF.</div>
     </button>
   </div>
 </div>
@@ -526,8 +539,9 @@
       <button id="archive-results-close">&times;</button>
     </div>
     <ul class="ag-list" id="archive-results-list"></ul>
-    <div class="ag-total-line"><span>Total</span><span class="num" id="archive-results-total"></span></div>
-    <button class="btn" id="archive-results-pdf-btn" style="margin-top:16px;">Télécharger en PDF</button>
+    <div class="ag-total-line" id="archive-results-total-row"><span>Total</span><span class="num" id="archive-results-total"></span></div>
+    <button class="btn secondary" id="archive-results-recall-btn" type="button" style="margin-top:16px;">Faire réapparaître la sélection</button>
+    <button class="btn" id="archive-results-pdf-btn" style="margin-top:10px;">Télécharger en PDF</button>
   </div>
 </div>
 
@@ -741,6 +755,27 @@ let editingActionId = null, editingAdhId = null, editingDonId = null, editingFac
 let periodModalMode = null;
 let currentArchiveResults = null;
 let agSchoolYear = null;
+let recalledActions = [];
+let recalledAdherents = [];
+
+function updateArchivesTabVisibility() {
+  document.getElementById('tab-archives-temp').style.display = (recalledActions.length || recalledAdherents.length) ? 'flex' : 'none';
+}
+function renderRecalled() {
+  const listA = document.getElementById('recalled-actions-list');
+  listA.innerHTML = recalledActions.length ? '<div class="ag-section-title">Actions archivées rappelées</div>' : '';
+  recalledActions.forEach(a => listA.appendChild(actionRow(a, beneficeOf(a))));
+  const listB = document.getElementById('recalled-adherents-list');
+  listB.innerHTML = recalledAdherents.length ? '<div class="ag-section-title">Adhérents archivés rappelés</div>' : '';
+  recalledAdherents.forEach(a => listB.appendChild(adherentRow(a)));
+}
+document.getElementById('clear-recalled-btn').addEventListener('click', () => {
+  recalledActions = [];
+  recalledAdherents = [];
+  updateArchivesTabVisibility();
+  renderRecalled();
+  document.querySelector('.tab-btn[data-view="view-actions"]').click();
+});
 
 const MAX_DOC_BYTES = 900000; // marge sous la limite Firestore de 1 Mo par document
 
@@ -824,6 +859,15 @@ function showToast(msg) {
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
+function withSavingGuard(btn, run) {
+  if (btn.disabled) return;
+  const original = btn.textContent;
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = 'Enregistrement...';
+  const restore = () => { btn.disabled = false; btn.style.opacity = ''; btn.textContent = original; };
+  run().then(restore).catch(restore);
+}
 function schoolYearBounds(start, end) {
   return { from: start + '-09-01', to: end + '-08-31' };
 }
@@ -836,7 +880,7 @@ function isAdherentInYear(a, year) {
 
 // ---------- Tabs ----------
 function updateFabVisibility(view) {
-  document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours') ? 'none' : 'flex';
+  document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours' || view === 'view-archives-temp') ? 'none' : 'flex';
   document.getElementById('fab-menu').style.display = (view === 'view-actions' || view === 'view-adhesion') ? 'flex' : 'none';
 }
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -950,6 +994,20 @@ function factureRow(f) {
   return row;
 }
 
+function adherentRow(a) {
+  const row = document.createElement('div');
+  row.className = 'adh-item';
+  const enfantsStr = (a.enfants || []).map(e => `${e.prenom || ''}${e.classe ? ' (' + e.classe + ')' : ''}`).filter(Boolean).join(', ');
+  const periode = (a.anneeRentree || a.anneeSortie) ? `${a.anneeRentree || '?'}–${a.anneeSortie || '?'}` : '';
+  row.innerHTML = `
+    <div class="name">${escapeHtml(a.prenom || '')} ${escapeHtml(a.nom || '')}</div>
+    <div class="meta">${escapeHtml(a.groupeScolaire || '')}${periode ? ' · ' + escapeHtml(periode) : ''}</div>
+    ${enfantsStr ? `<div class="meta">${escapeHtml(enfantsStr)}</div>` : ''}
+    <div class="meta">${escapeHtml(a.email || '')}${a.telephone ? ' · ' + escapeHtml(a.telephone) : ''} · ${escapeHtml(a.moyenPaiement || '')} · <span class="num">${eur(a.montant)}</span></div>`;
+  row.addEventListener('click', () => openAdhModal(a));
+  return row;
+}
+
 // ---------- Render: Adherents ----------
 function renderAdherents() {
   const list = document.getElementById('adherents-list');
@@ -957,19 +1015,7 @@ function renderAdherents() {
   list.innerHTML = '';
   const active = adherents.filter(a => !a.archive);
   empty.style.display = active.length ? 'none' : 'block';
-  active.forEach(a => {
-    const row = document.createElement('div');
-    row.className = 'adh-item';
-    const enfantsStr = (a.enfants || []).map(e => `${e.prenom || ''}${e.classe ? ' (' + e.classe + ')' : ''}`).filter(Boolean).join(', ');
-    const periode = (a.anneeRentree || a.anneeSortie) ? `${a.anneeRentree || '?'}–${a.anneeSortie || '?'}` : '';
-    row.innerHTML = `
-      <div class="name">${escapeHtml(a.prenom || '')} ${escapeHtml(a.nom || '')}</div>
-      <div class="meta">${escapeHtml(a.groupeScolaire || '')}${periode ? ' · ' + escapeHtml(periode) : ''}</div>
-      ${enfantsStr ? `<div class="meta">${escapeHtml(enfantsStr)}</div>` : ''}
-      <div class="meta">${escapeHtml(a.email || '')}${a.telephone ? ' · ' + escapeHtml(a.telephone) : ''} · ${escapeHtml(a.moyenPaiement || '')} · <span class="num">${eur(a.montant)}</span></div>`;
-    row.addEventListener('click', () => openAdhModal(a));
-    list.appendChild(row);
-  });
+  active.forEach(a => list.appendChild(adherentRow(a)));
 }
 
 function openAgYearModal() {
@@ -1170,7 +1216,7 @@ document.getElementById('period-validate-btn').addEventListener('click', () => {
   document.getElementById('period-modal').classList.remove('active');
   if (periodModalMode === 'archive-actions') archiveActionsForPeriod(start, end);
   else if (periodModalMode === 'view-actions-archive') showActionsArchiveForPeriod(start, end);
-  else if (periodModalMode === 'view-adherents-archive') exportAdherentsArchivePdf(start, end);
+  else if (periodModalMode === 'view-adherents-archive') showAdherentsArchiveForPeriod(start, end);
 });
 
 function archiveActionsForPeriod(start, end) {
@@ -1186,7 +1232,7 @@ function archiveActionsForPeriod(start, end) {
 function showActionsArchiveForPeriod(start, end) {
   const { from, to } = schoolYearBounds(start, end);
   const matches = actions.filter(a => a.archive && a.date >= from && a.date <= to).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  currentArchiveResults = { start, end, matches };
+  currentArchiveResults = { kind: 'actions', start, end, matches };
   const list = document.getElementById('archive-results-list');
   list.innerHTML = '';
   let total = 0;
@@ -1195,18 +1241,64 @@ function showActionsArchiveForPeriod(start, end) {
     const benef = beneficeOf(a); total += benef;
     const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
     const li = document.createElement('li');
-    li.innerHTML = `<span>${dateStr} — ${escapeHtml(a.nom || '')}</span><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span>`;
+    li.innerHTML = `<label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;"><input type="checkbox" class="archive-pick" data-id="${a.id}" style="width:16px;height:16px;flex-shrink:0;"><span>${dateStr} — ${escapeHtml(a.nom || '')}</span></label><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span>`;
     list.appendChild(li);
   });
   document.getElementById('archive-results-title').textContent = `Actions archivées ${start}–${end}`;
+  document.getElementById('archive-results-total-row').style.display = 'flex';
   const totalEl = document.getElementById('archive-results-total');
   totalEl.textContent = eur(total);
   totalEl.className = 'num ' + (total >= 0 ? 'pos' : 'neg');
   document.getElementById('archive-results-modal').classList.add('active');
 }
+
+function showAdherentsArchiveForPeriod(start, end) {
+  const matches = adherents.filter(a => a.archive && (Number(a.anneeRentree) || 0) <= end && (Number(a.anneeSortie) || end) >= start)
+    .sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+  currentArchiveResults = { kind: 'adherents', start, end, matches };
+  const list = document.getElementById('archive-results-list');
+  list.innerHTML = '';
+  if (!matches.length) list.innerHTML = '<li><span style="color:var(--ink-soft);">Aucun adhérent archivé sur cette période.</span><span></span></li>';
+  matches.forEach(a => {
+    const li = document.createElement('li');
+    const periode = (a.anneeRentree || a.anneeSortie) ? `${a.anneeRentree || '?'}–${a.anneeSortie || '?'}` : '';
+    li.innerHTML = `<label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;"><input type="checkbox" class="archive-pick" data-id="${a.id}" style="width:16px;height:16px;flex-shrink:0;"><span>${escapeHtml(a.prenom || '')} ${escapeHtml(a.nom || '')}</span></label><span style="font-size:11.5px;color:var(--ink-soft);">${escapeHtml(periode)}</span>`;
+    list.appendChild(li);
+  });
+  document.getElementById('archive-results-title').textContent = `Adhérents archivés ${start}–${end}`;
+  document.getElementById('archive-results-total-row').style.display = 'none';
+  document.getElementById('archive-results-modal').classList.add('active');
+}
+
 document.getElementById('archive-results-close').addEventListener('click', () => document.getElementById('archive-results-modal').classList.remove('active'));
+
+document.getElementById('archive-results-recall-btn').addEventListener('click', () => {
+  if (!currentArchiveResults) return;
+  const ids = [...document.querySelectorAll('#archive-results-list .archive-pick:checked')].map(cb => cb.dataset.id);
+  if (!ids.length) { showToast('Sélectionne au moins une fiche.'); return; }
+  if (currentArchiveResults.kind === 'actions') {
+    ids.forEach(id => {
+      const a = actions.find(x => x.id === id);
+      if (a && !recalledActions.some(r => r.id === id)) recalledActions.push(a);
+    });
+  } else {
+    ids.forEach(id => {
+      const a = adherents.find(x => x.id === id);
+      if (a && !recalledAdherents.some(r => r.id === id)) recalledAdherents.push(a);
+    });
+  }
+  document.getElementById('archive-results-modal').classList.remove('active');
+  updateArchivesTabVisibility();
+  renderRecalled();
+  showToast(`${ids.length} fiche(s) rappelée(s) — voir l'onglet "Archives".`);
+});
+
 document.getElementById('archive-results-pdf-btn').addEventListener('click', () => {
   if (!currentArchiveResults) return;
+  if (currentArchiveResults.kind === 'adherents') {
+    generateAdherentsPdf(currentArchiveResults.matches, `Archives adhérents ${currentArchiveResults.start}-${currentArchiveResults.end}`);
+    return;
+  }
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   let y = 18;
@@ -1267,11 +1359,6 @@ function generateAdherentsPdf(list, title) {
   });
   doc.save(title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-') + '.pdf');
   showToast('PDF prêt — choisis où l\'enregistrer.');
-}
-
-function exportAdherentsArchivePdf(start, end) {
-  const matches = adherents.filter(a => a.archive && (Number(a.anneeRentree) || 0) <= end && (Number(a.anneeSortie) || end) >= start);
-  generateAdherentsPdf(matches, `Archives adhérents ${start}-${end}`);
 }
 
 // ---------- Modal: Action ----------
@@ -1356,6 +1443,7 @@ function updateBeneficePreview() {
 }
 
 document.getElementById('save-action-btn').addEventListener('click', () => {
+  const btn = document.getElementById('save-action-btn');
   const nom = document.getElementById('f-nom').value.trim();
   if (!nom) { showToast('Donne un nom à cette action.'); return; }
   const payload = {
@@ -1370,11 +1458,13 @@ document.getElementById('save-action-btn').addEventListener('click', () => {
     showToast('Les justificatifs sont trop volumineux au total. Retire ou réduis une pièce jointe.');
     return;
   }
-  const promise = editingActionId
-    ? db.collection('actions').doc(editingActionId).set(payload, { merge: true })
-    : db.collection('actions').add(payload);
-  promise.then(() => { actionModal.classList.remove('active'); showToast('Action enregistrée.'); })
-         .catch(() => showToast('Erreur d\'enregistrement.'));
+  withSavingGuard(btn, () => {
+    const promise = editingActionId
+      ? db.collection('actions').doc(editingActionId).set(payload, { merge: true })
+      : db.collection('actions').add(payload);
+    return promise.then(() => { actionModal.classList.remove('active'); showToast('Action enregistrée.'); })
+                   .catch(() => showToast('Erreur d\'enregistrement.'));
+  });
 });
 
 document.getElementById('delete-action-btn').addEventListener('click', () => {
@@ -1403,6 +1493,7 @@ function openDonModal(don) {
 }
 
 document.getElementById('save-don-btn').addEventListener('click', () => {
+  const btn = document.getElementById('save-don-btn');
   const montant = parseFloat(document.getElementById('d-montant').value) || 0;
   if (montant <= 0) { showToast('Indique un montant pour ce don.'); return; }
   const payload = {
@@ -1412,11 +1503,13 @@ document.getElementById('save-don-btn').addEventListener('click', () => {
     justification: document.getElementById('d-justif').value.trim(),
     moyenPaiement: document.getElementById('d-paiement').value
   };
-  const promise = editingDonId
-    ? db.collection('dons').doc(editingDonId).set(payload, { merge: true })
-    : db.collection('dons').add(payload);
-  promise.then(() => { donModal.classList.remove('active'); showToast('Don enregistré.'); })
-         .catch(() => showToast('Erreur d\'enregistrement.'));
+  withSavingGuard(btn, () => {
+    const promise = editingDonId
+      ? db.collection('dons').doc(editingDonId).set(payload, { merge: true })
+      : db.collection('dons').add(payload);
+    return promise.then(() => { donModal.classList.remove('active'); showToast('Don enregistré.'); })
+                   .catch(() => showToast('Erreur d\'enregistrement.'));
+  });
 });
 
 document.getElementById('delete-don-btn').addEventListener('click', () => {
@@ -1467,6 +1560,7 @@ document.getElementById('fa-file').addEventListener('change', async (e) => {
 });
 
 document.getElementById('save-facture-btn').addEventListener('click', () => {
+  const btn = document.getElementById('save-facture-btn');
   const nom = document.getElementById('fa-nom').value.trim();
   const montant = parseFloat(document.getElementById('fa-montant').value) || 0;
   if (!nom) { showToast('Donne un nom à cette facture.'); return; }
@@ -1486,11 +1580,13 @@ document.getElementById('save-facture-btn').addEventListener('click', () => {
     showToast('Le justificatif est trop volumineux.');
     return;
   }
-  const promise = editingFactureId
-    ? db.collection('factures').doc(editingFactureId).set(payload, { merge: true })
-    : db.collection('factures').add(payload);
-  promise.then(() => { factureModal.classList.remove('active'); showToast('Facture enregistrée.'); })
-         .catch(() => showToast('Erreur d\'enregistrement.'));
+  withSavingGuard(btn, () => {
+    const promise = editingFactureId
+      ? db.collection('factures').doc(editingFactureId).set(payload, { merge: true })
+      : db.collection('factures').add(payload);
+    return promise.then(() => { factureModal.classList.remove('active'); showToast('Facture enregistrée.'); })
+                   .catch(() => showToast('Erreur d\'enregistrement.'));
+  });
 });
 
 document.getElementById('delete-facture-btn').addEventListener('click', () => {
@@ -1550,6 +1646,7 @@ function openAdhModal(adh) {
 }
 
 document.getElementById('save-adh-btn').addEventListener('click', () => {
+  const btn = document.getElementById('save-adh-btn');
   const nom = document.getElementById('a-nom').value.trim();
   const prenom = document.getElementById('a-prenom').value.trim();
   const montant = parseFloat(document.getElementById('a-montant').value) || 0;
@@ -1568,11 +1665,13 @@ document.getElementById('save-adh-btn').addEventListener('click', () => {
     montant
   };
   if (!editingAdhId) payload.dateAdhesion = new Date().toISOString().slice(0, 10);
-  const promise = editingAdhId
-    ? db.collection('adherents').doc(editingAdhId).set(payload, { merge: true })
-    : db.collection('adherents').add(payload);
-  promise.then(() => { adhModal.classList.remove('active'); showToast('Adhérent enregistré.'); })
-         .catch(() => showToast('Erreur d\'enregistrement.'));
+  withSavingGuard(btn, () => {
+    const promise = editingAdhId
+      ? db.collection('adherents').doc(editingAdhId).set(payload, { merge: true })
+      : db.collection('adherents').add(payload);
+    return promise.then(() => { adhModal.classList.remove('active'); showToast('Adhérent enregistré.'); })
+                   .catch((err) => { console.error(err); showToast('Erreur d\'enregistrement.'); });
+  });
 });
 
 document.getElementById('archive-adh-btn').addEventListener('click', () => {
