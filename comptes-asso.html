@@ -350,7 +350,7 @@
 <!-- ===== App ===== -->
 <div id="app">
   <header class="top">
-    <span class="version-badge">v4.1</span>
+    <span class="version-badge">v4.2</span>
     <div class="row">
       <div>
         <div class="eyebrow">Association des Amis des Écoles</div>
@@ -777,7 +777,7 @@ document.getElementById('clear-recalled-btn').addEventListener('click', () => {
   document.querySelector('.tab-btn[data-view="view-actions"]').click();
 });
 
-const MAX_DOC_BYTES = 900000; // marge sous la limite Firestore de 1 Mo par document
+const MAX_DOC_BYTES = 980000; // marge sous la limite Firestore de 1 Mo par document
 
 // ---------- Auth ----------
 document.getElementById('login-btn').addEventListener('click', () => {
@@ -1128,7 +1128,7 @@ function fileToStorable(file) {
     reader.onload = () => {
       const img = new Image();
       img.onload = () => {
-        const maxDim = 1400;
+        const maxDim = 1100;
         let { width, height } = img;
         if (width > maxDim || height > maxDim) {
           const ratio = Math.min(maxDim / width, maxDim / height);
@@ -1138,7 +1138,7 @@ function fileToStorable(file) {
         const canvas = document.createElement('canvas');
         canvas.width = width; canvas.height = height;
         canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.6), mime: 'image/jpeg' });
+        resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.5), mime: 'image/jpeg' });
       };
       img.onerror = () => reject(new Error('Image illisible.'));
       img.src = reader.result;
@@ -1455,7 +1455,8 @@ document.getElementById('save-action-btn').addEventListener('click', () => {
     depose: document.getElementById('f-depose').checked
   };
   if (JSON.stringify(payload).length > MAX_DOC_BYTES) {
-    showToast('Les justificatifs sont trop volumineux au total. Retire ou réduis une pièce jointe.');
+    const ko = Math.round(JSON.stringify(payload).length / 1024);
+    showToast(`Les justificatifs pèsent ${ko} Ko au total (limite ~${Math.round(MAX_DOC_BYTES / 1024)} Ko). Retire ou réduis une pièce jointe.`);
     return;
   }
   withSavingGuard(btn, () => {
@@ -1577,7 +1578,8 @@ document.getElementById('save-facture-btn').addEventListener('click', () => {
     justificatifMime: wrap.dataset.justifMime || ''
   };
   if (JSON.stringify(payload).length > MAX_DOC_BYTES) {
-    showToast('Le justificatif est trop volumineux.');
+    const ko = Math.round(JSON.stringify(payload).length / 1024);
+    showToast(`Le justificatif pèse ${ko} Ko (limite ~${Math.round(MAX_DOC_BYTES / 1024)} Ko).`);
     return;
   }
   withSavingGuard(btn, () => {
