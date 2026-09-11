@@ -287,6 +287,19 @@
   }
   .fab.fab-right{right:20px;}
   .fab.fab-left{left:20px;display:none;}
+  .fab.fab-left-2{left:20px;bottom:154px;display:none;}
+  .search-bar{
+    display:none;gap:8px;align-items:center;
+    background:var(--paper-raised);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);
+    padding:10px 12px;margin-bottom:14px;
+  }
+  .search-bar.active{display:flex;}
+  .search-bar input{
+    flex:1;border:none;background:transparent;font-size:15px;
+    font-family:inherit;color:var(--ink);outline:none;
+  }
+  .search-bar button{background:none;border:none;color:var(--ink-soft);font-size:18px;cursor:pointer;line-height:1;padding:2px;}
   .toast{
     position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
     background:var(--ink);color:#fff;padding:10px 18px;border-radius:100px;
@@ -350,7 +363,7 @@
 <!-- ===== App ===== -->
 <div id="app">
   <header class="top">
-    <span class="version-badge">v4.3</span>
+    <span class="version-badge">v5</span>
     <div class="row">
       <div>
         <div class="eyebrow">Association des Amis des Écoles</div>
@@ -385,6 +398,11 @@
 
     <!-- ADHESION -->
     <section class="view" id="view-adhesion">
+      <div class="search-bar" id="adh-search-bar">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink-soft);flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" id="adh-search-input" placeholder="Nom, prénom, école, enfant, e-mail...">
+        <button type="button" id="adh-search-clear" title="Fermer la recherche">&times;</button>
+      </div>
       <div id="adherents-list"></div>
       <div class="empty" id="adherents-empty" style="display:none;">Aucun adhérent actif enregistré.<br>Touche le bouton + pour en ajouter un.</div>
     </section>
@@ -411,6 +429,9 @@
     </section>
   </main>
   <button class="fab fab-right" id="fab-add">+</button>
+  <button class="fab fab-left-2" id="fab-search-adh" title="Rechercher un adhérent">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+  </button>
   <button class="fab fab-left" id="fab-menu" title="Listes et archives">
     <svg viewBox="0 0 24 24" width="20" height="20"><rect x="5" y="5" width="14" height="14" rx="3" fill="none" stroke="#fff" stroke-width="2"/></svg>
   </button>
@@ -512,6 +533,39 @@
       <div class="t">Liste des archives</div>
       <div class="d">Choisis une période scolaire pour retrouver les adhérents archivés : consultation, rappel temporaire ou export PDF.</div>
     </button>
+    <button type="button" class="choice-btn" id="adh-menu-mailing">
+      <div class="t">Liste de diffusion (e-mails)</div>
+      <div class="d">Extrais les e-mails des adhérents actifs, pour une école ou toute l'association.</div>
+    </button>
+  </div>
+</div>
+
+<!-- ===== Modal: liste de diffusion ===== -->
+<div class="modal-backdrop" id="mailing-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Liste de diffusion</h2>
+      <button id="mailing-modal-close">&times;</button>
+    </div>
+    <div class="field">
+      <label>Destinataires</label>
+      <select id="mailing-scope">
+        <option value="">Toute l'association</option>
+        <option value="A. Lassagne">A. Lassagne</option>
+        <option value="C. Fournion">C. Fournion</option>
+        <option value="J. Moulin">J. Moulin</option>
+        <option value="J. Cartier">J. Cartier</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Format du fichier</label>
+      <select id="mailing-format">
+        <option value="excel">Excel (nom + e-mail)</option>
+        <option value="google">Google Contacts (import direct pour Gmail)</option>
+      </select>
+    </div>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin:0 0 16px;" id="mailing-format-hint"></p>
+    <button class="btn" id="mailing-generate-btn">Générer le fichier</button>
   </div>
 </div>
 
@@ -732,6 +786,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <!-- jsPDF pour l'export PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- SheetJS pour générer des fichiers Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 const firebaseConfig = {
@@ -882,6 +938,7 @@ function isAdherentInYear(a, year) {
 function updateFabVisibility(view) {
   document.getElementById('fab-add').style.display = (view === 'view-ag' || view === 'view-encours' || view === 'view-archives-temp') ? 'none' : 'flex';
   document.getElementById('fab-menu').style.display = (view === 'view-actions' || view === 'view-adhesion') ? 'flex' : 'none';
+  document.getElementById('fab-search-adh').style.display = (view === 'view-adhesion') ? 'flex' : 'none';
 }
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1009,14 +1066,38 @@ function adherentRow(a) {
 }
 
 // ---------- Render: Adherents ----------
+function normalizeSearch(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+function adherentSearchText(a) {
+  const enfantsStr = (a.enfants || []).map(e => `${e.prenom || ''} ${e.classe || ''}`).join(' ');
+  return normalizeSearch([a.nom, a.prenom, a.groupeScolaire, enfantsStr, a.email, a.telephone, a.adresse].join(' '));
+}
 function renderAdherents() {
   const list = document.getElementById('adherents-list');
   const empty = document.getElementById('adherents-empty');
   list.innerHTML = '';
-  const active = adherents.filter(a => !a.archive);
-  empty.style.display = active.length ? 'none' : 'block';
-  active.forEach(a => list.appendChild(adherentRow(a)));
+  let visible = adherents.filter(a => !a.archive);
+  const term = normalizeSearch(document.getElementById('adh-search-input').value);
+  if (term) visible = visible.filter(a => adherentSearchText(a).includes(term));
+  empty.style.display = visible.length ? 'none' : 'block';
+  empty.innerHTML = term
+    ? 'Aucun adhérent ne correspond à cette recherche.'
+    : 'Aucun adhérent actif enregistré.<br>Touche le bouton + pour en ajouter un.';
+  visible.forEach(a => list.appendChild(adherentRow(a)));
 }
+
+document.getElementById('fab-search-adh').addEventListener('click', () => {
+  const bar = document.getElementById('adh-search-bar');
+  bar.classList.toggle('active');
+  if (bar.classList.contains('active')) document.getElementById('adh-search-input').focus();
+});
+document.getElementById('adh-search-clear').addEventListener('click', () => {
+  document.getElementById('adh-search-input').value = '';
+  document.getElementById('adh-search-bar').classList.remove('active');
+  renderAdherents();
+});
+document.getElementById('adh-search-input').addEventListener('input', renderAdherents);
 
 function openAgYearModal() {
   document.getElementById('ag-year-input').value = agSchoolYear || '';
@@ -1192,6 +1273,76 @@ document.getElementById('adh-menu-active').addEventListener('click', () => {
 document.getElementById('adh-menu-archive').addEventListener('click', () => {
   document.getElementById('adh-menu-modal').classList.remove('active');
   openPeriodModal('view-adherents-archive');
+});
+document.getElementById('adh-menu-mailing').addEventListener('click', () => {
+  document.getElementById('adh-menu-modal').classList.remove('active');
+  document.getElementById('mailing-modal').classList.add('active');
+  updateMailingFormatHint();
+});
+
+// ---------- Modal: liste de diffusion ----------
+document.getElementById('mailing-modal-close').addEventListener('click', () => document.getElementById('mailing-modal').classList.remove('active'));
+
+function updateMailingFormatHint() {
+  const format = document.getElementById('mailing-format').value;
+  document.getElementById('mailing-format-hint').textContent = format === 'google'
+    ? "À importer dans contacts.google.com (Importer). Un libellé sera créé automatiquement — tape ensuite son nom dans le champ \"À :\" de Gmail pour écrire à tout le groupe d'un coup."
+    : "Un fichier .xlsx avec une colonne Nom et une colonne E-mail, à ouvrir dans Excel ou Google Sheets.";
+}
+document.getElementById('mailing-format').addEventListener('change', updateMailingFormatHint);
+
+function csvEscape(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+function downloadTextFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime + ';charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('mailing-generate-btn').addEventListener('click', () => {
+  const scope = document.getElementById('mailing-scope').value;
+  const format = document.getElementById('mailing-format').value;
+  const scopeLabel = scope || "Amis des Écoles";
+
+  let list = adherents.filter(a => !a.archive && a.email && a.email.trim());
+  if (scope) list = list.filter(a => a.groupeScolaire === scope);
+  // dédoublonnage par e-mail (une famille avec 2 adhésions ne doit pas apparaître 2 fois)
+  const seen = new Set();
+  list = list.filter(a => {
+    const key = a.email.trim().toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  if (!list.length) { showToast("Aucun e-mail trouvé pour cette sélection."); return; }
+
+  const safeSuffix = scopeLabel.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-');
+
+  if (format === 'excel') {
+    const rows = list.map(a => ({ Nom: `${a.prenom || ''} ${a.nom || ''}`.trim(), 'E-mail': a.email.trim() }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 28 }, { wch: 32 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Liste de diffusion');
+    XLSX.writeFile(wb, `liste-diffusion-${safeSuffix}.xlsx`);
+  } else {
+    const header = ['Name', 'Given Name', 'Family Name', 'E-mail 1 - Type', 'E-mail 1 - Value', 'Group Membership'];
+    const groupName = '* Amis des Écoles' + (scope ? ' - ' + scope : '');
+    const lines = [header.join(',')];
+    list.forEach(a => {
+      const full = `${a.prenom || ''} ${a.nom || ''}`.trim();
+      lines.push([full, a.prenom || '', a.nom || '', 'Other', a.email.trim(), groupName].map(csvEscape).join(','));
+    });
+    downloadTextFile(`google-contacts-${safeSuffix}.csv`, lines.join('\n'), 'text/csv');
+  }
+  document.getElementById('mailing-modal').classList.remove('active');
+  showToast(`${list.length} e-mail(s) exporté(s).`);
 });
 
 // ---------- Modal: période scolaire ----------
