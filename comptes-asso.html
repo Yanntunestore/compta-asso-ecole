@@ -111,6 +111,7 @@
     font-size:10.5px;font-weight:700;color:var(--ink-soft);
     background:var(--paper-raised);border:1px solid var(--line);
     border-radius:100px;padding:2px 8px;
+    cursor:pointer;font-family:inherit;
   }
   header.top .row{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;}
   header.top h1{font-size:19px;}
@@ -320,6 +321,15 @@
     border-top:2px solid var(--ink);margin-top:10px;font-weight:700;font-size:16px;
   }
 
+  .changelog-entry{margin-bottom:16px;}
+  .changelog-entry:last-child{margin-bottom:0;}
+  .changelog-entry .v{
+    display:inline-block;font-size:12px;font-weight:700;color:var(--ink);
+    background:var(--gold-soft);border-radius:100px;padding:2px 10px;margin-bottom:6px;
+  }
+  .changelog-entry ul{margin:0;padding-left:18px;font-size:13.5px;color:var(--ink-soft);}
+  .changelog-entry li{margin-bottom:3px;}
+
   /* responsive: tablette / ordinateur */
   @media (min-width:700px){
     main{max-width:760px;}
@@ -363,7 +373,7 @@
 <!-- ===== App ===== -->
 <div id="app">
   <header class="top">
-    <span class="version-badge">v5</span>
+    <button type="button" class="version-badge" id="version-badge-btn">v5.1</button>
     <div class="row">
       <div>
         <div class="eyebrow">Association des Amis des Écoles</div>
@@ -478,6 +488,17 @@
   </div>
 </div>
 
+<!-- ===== Modal: historique des versions ===== -->
+<div class="modal-backdrop" id="changelog-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Historique des versions</h2>
+      <button id="changelog-modal-close">&times;</button>
+    </div>
+    <div id="changelog-content"></div>
+  </div>
+</div>
+
 <!-- ===== Modal: choix nouvelle entrée (Actions) ===== -->
 <div class="modal-backdrop" id="choice-modal">
   <div class="modal">
@@ -508,12 +529,12 @@
       <button id="actions-menu-close">&times;</button>
     </div>
     <button type="button" class="choice-btn" id="actions-menu-archive">
-      <div class="t">Archiver les actions</div>
-      <div class="d">Choisis une période scolaire : les actions correspondantes seront archivées et retirées des listes actives.</div>
+      <div class="t">Archiver les actions et factures</div>
+      <div class="d">Choisis une période scolaire : les actions et factures correspondantes seront archivées et retirées des listes actives.</div>
     </button>
     <button type="button" class="choice-btn" id="actions-menu-view">
       <div class="t">Accès aux archives</div>
-      <div class="d">Choisis une période scolaire pour consulter les actions archivées : rappel temporaire (avec justificatifs) ou export PDF.</div>
+      <div class="d">Choisis une période scolaire pour consulter les actions et factures archivées : rappel temporaire (avec justificatifs) ou export PDF.</div>
     </button>
   </div>
 </div>
@@ -812,21 +833,24 @@ let periodModalMode = null;
 let currentArchiveResults = null;
 let agSchoolYear = null;
 let recalledActions = [];
+let recalledFactures = [];
 let recalledAdherents = [];
 
 function updateArchivesTabVisibility() {
-  document.getElementById('tab-archives-temp').style.display = (recalledActions.length || recalledAdherents.length) ? 'flex' : 'none';
+  document.getElementById('tab-archives-temp').style.display = (recalledActions.length || recalledFactures.length || recalledAdherents.length) ? 'flex' : 'none';
 }
 function renderRecalled() {
   const listA = document.getElementById('recalled-actions-list');
-  listA.innerHTML = recalledActions.length ? '<div class="ag-section-title">Actions archivées rappelées</div>' : '';
+  listA.innerHTML = (recalledActions.length || recalledFactures.length) ? '<div class="ag-section-title">Actions & factures archivées rappelées</div>' : '';
   recalledActions.forEach(a => listA.appendChild(actionRow(a, beneficeOf(a))));
+  recalledFactures.forEach(f => listA.appendChild(factureRow(f)));
   const listB = document.getElementById('recalled-adherents-list');
   listB.innerHTML = recalledAdherents.length ? '<div class="ag-section-title">Adhérents archivés rappelés</div>' : '';
   recalledAdherents.forEach(a => listB.appendChild(adherentRow(a)));
 }
 document.getElementById('clear-recalled-btn').addEventListener('click', () => {
   recalledActions = [];
+  recalledFactures = [];
   recalledAdherents = [];
   updateArchivesTabVisibility();
   renderRecalled();
@@ -834,6 +858,61 @@ document.getElementById('clear-recalled-btn').addEventListener('click', () => {
 });
 
 const MAX_DOC_BYTES = 980000; // marge sous la limite Firestore de 1 Mo par document
+
+// ---------- Historique des versions ----------
+const CHANGELOG = [
+  { v: 'v5.1', items: [
+    "L'archivage par période scolaire prend maintenant en compte les factures en plus des actions.",
+    "Consultation et rappel temporaire des archives étendus aux factures (avec justificatifs).",
+    "Ajout de cet historique des versions, accessible en touchant le numéro de version."
+  ]},
+  { v: 'v5', items: [
+    "Recherche dynamique des adhérents (nom, prénom, école, enfant, e-mail...).",
+    "Export d'une liste de diffusion par e-mail (Excel ou format Google Contacts), par école ou pour toute l'association."
+  ]},
+  { v: 'v4.3', items: ["Renommage du groupe scolaire \u00abC. Fournier\u00bb en \u00abC. Fournion\u00bb."] },
+  { v: 'v4.2', items: [
+    "Compression des photos jointes renforcée.",
+    "Limite de taille des justificatifs légèrement augmentée.",
+    "Messages d'erreur plus précis (taille exacte affichée)."
+  ]},
+  { v: 'v4.1', items: [
+    "Protection contre le double-clic à l'enregistrement (action, don, facture, adhérent).",
+    "Correctif d'affichage des boutons flottants au premier chargement."
+  ]},
+  { v: 'v4', items: [
+    "Fiches enfants dynamiques (prénom + classe, ajout à volonté) dans la fiche adhérent.",
+    "Champs année de rentrée / sortie pour la période d'adhésion.",
+    "Archivage et suppression des adhérents.",
+    "Nouvelle fiche \u00abfacture\u00bb, comptabilisée dans le bilan AG.",
+    "Menus d'archives par période scolaire (actions et adhérents).",
+    "Appli responsive (téléphone, tablette, ordinateur).",
+    "En-tête agrandi \u00abAssociation des Amis des Écoles\u00bb."
+  ]},
+  { v: 'v3', items: [
+    "En-tête centré, boutons de navigation avec contour visible.",
+    "Séparation visuelle claire de chaque fiche action.",
+    "Palette de couleurs plus contrastée."
+  ]},
+  { v: 'v2', items: [
+    "Ajout des dons aux écoles.",
+    "Justificatifs (photo ou PDF) sur les dépenses.",
+    "Suppression des adhérents, nouveaux champs (groupe scolaire, enfants, adresse)."
+  ]},
+  { v: 'v1', items: ["Première version : actions, adhésions, bilan AG, export PDF."] }
+];
+function renderChangelog() {
+  document.getElementById('changelog-content').innerHTML = CHANGELOG.map(entry => `
+    <div class="changelog-entry">
+      <span class="v">${entry.v}</span>
+      <ul>${entry.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>
+    </div>`).join('');
+}
+document.getElementById('version-badge-btn').addEventListener('click', () => {
+  renderChangelog();
+  document.getElementById('changelog-modal').classList.add('active');
+});
+document.getElementById('changelog-modal-close').addEventListener('click', () => document.getElementById('changelog-modal').classList.remove('active'));
 
 // ---------- Auth ----------
 document.getElementById('login-btn').addEventListener('click', () => {
@@ -960,6 +1039,7 @@ function renderActions() {
   list.innerHTML = '';
 
   const activeActions = actions.filter(a => !a.archive);
+  const activeFactures = factures.filter(f => !f.archive);
   let total = 0, pending = 0;
   activeActions.forEach(a => {
     const benef = beneficeOf(a);
@@ -972,7 +1052,7 @@ function renderActions() {
   const combined = [
     ...activeActions.map(a => ({ kind: 'action', data: a })),
     ...dons.map(d => ({ kind: 'don', data: d })),
-    ...factures.map(f => ({ kind: 'facture', data: f }))
+    ...activeFactures.map(f => ({ kind: 'facture', data: f }))
   ].sort((x, y) => (y.data.date || '').localeCompare(x.data.date || ''));
 
   empty.style.display = combined.length ? 'none' : 'block';
@@ -987,7 +1067,7 @@ function renderEnCours() {
   const list = document.getElementById('encours-list');
   const empty = document.getElementById('encours-empty');
   const pendingActions = actions.filter(a => !a.depose && !a.archive);
-  const pendingFactures = factures.filter(f => !f.payee);
+  const pendingFactures = factures.filter(f => !f.payee && !f.archive);
   const combined = [
     ...pendingActions.map(a => ({ kind: 'action', data: a })),
     ...pendingFactures.map(f => ({ kind: 'facture', data: f }))
@@ -1372,30 +1452,44 @@ document.getElementById('period-validate-btn').addEventListener('click', () => {
 
 function archiveActionsForPeriod(start, end) {
   const { from, to } = schoolYearBounds(start, end);
-  const matching = actions.filter(a => a.date && a.date >= from && a.date <= to && !a.archive);
-  if (!matching.length) { showToast('Aucune action dans cette période.'); return; }
-  if (!confirm(`Archiver ${matching.length} action(s) de la période ${start}–${end} ?`)) return;
+  const matchingActions = actions.filter(a => a.date && a.date >= from && a.date <= to && !a.archive);
+  const matchingFactures = factures.filter(f => f.date && f.date >= from && f.date <= to && !f.archive);
+  const total = matchingActions.length + matchingFactures.length;
+  if (!total) { showToast('Aucune action ni facture dans cette période.'); return; }
+  if (!confirm(`Archiver ${matchingActions.length} action(s) et ${matchingFactures.length} facture(s) de la période ${start}–${end} ?`)) return;
   const batch = db.batch();
-  matching.forEach(a => batch.update(db.collection('actions').doc(a.id), { archive: true }));
-  batch.commit().then(() => showToast('Actions archivées.')).catch(() => showToast("Erreur lors de l'archivage."));
+  matchingActions.forEach(a => batch.update(db.collection('actions').doc(a.id), { archive: true }));
+  matchingFactures.forEach(f => batch.update(db.collection('factures').doc(f.id), { archive: true }));
+  batch.commit().then(() => showToast('Actions et factures archivées.')).catch(() => showToast("Erreur lors de l'archivage."));
 }
 
 function showActionsArchiveForPeriod(start, end) {
   const { from, to } = schoolYearBounds(start, end);
-  const matches = actions.filter(a => a.archive && a.date >= from && a.date <= to).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
-  currentArchiveResults = { kind: 'actions', start, end, matches };
+  const actionMatches = actions.filter(a => a.archive && a.date >= from && a.date <= to);
+  const factureMatches = factures.filter(f => f.archive && f.date >= from && f.date <= to);
+  const combined = [
+    ...actionMatches.map(a => ({ kind: 'action', data: a })),
+    ...factureMatches.map(f => ({ kind: 'facture', data: f }))
+  ].sort((x, y) => (x.data.date || '').localeCompare(y.data.date || ''));
+  currentArchiveResults = { kind: 'actions', start, end, actionMatches, factureMatches };
   const list = document.getElementById('archive-results-list');
   list.innerHTML = '';
   let total = 0;
-  if (!matches.length) list.innerHTML = '<li><span style="color:var(--ink-soft);">Aucune action archivée sur cette période.</span><span></span></li>';
-  matches.forEach(a => {
-    const benef = beneficeOf(a); total += benef;
+  if (!combined.length) list.innerHTML = '<li><span style="color:var(--ink-soft);">Aucune action ni facture archivée sur cette période.</span><span></span></li>';
+  combined.forEach(item => {
+    const a = item.data;
     const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
     const li = document.createElement('li');
-    li.innerHTML = `<label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;"><input type="checkbox" class="archive-pick" data-id="${a.id}" style="width:16px;height:16px;flex-shrink:0;"><span>${dateStr} — ${escapeHtml(a.nom || '')}</span></label><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span>`;
+    if (item.kind === 'action') {
+      const benef = beneficeOf(a); total += benef;
+      li.innerHTML = `<label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;"><input type="checkbox" class="archive-pick" data-kind="action" data-id="${a.id}" style="width:16px;height:16px;flex-shrink:0;"><span>${dateStr} — ${escapeHtml(a.nom || '')}</span></label><span class="num ${benef >= 0 ? 'pos' : 'neg'}">${eur(benef)}</span>`;
+    } else {
+      total -= (Number(a.montant) || 0);
+      li.innerHTML = `<label style="display:flex;align-items:center;gap:8px;flex:1;cursor:pointer;"><input type="checkbox" class="archive-pick" data-kind="facture" data-id="${a.id}" style="width:16px;height:16px;flex-shrink:0;"><span>${dateStr} — Facture ${escapeHtml(a.nom || '')}</span></label><span class="num neg">− ${eur(a.montant)}</span>`;
+    }
     list.appendChild(li);
   });
-  document.getElementById('archive-results-title').textContent = `Actions archivées ${start}–${end}`;
+  document.getElementById('archive-results-title').textContent = `Actions & factures archivées ${start}–${end}`;
   document.getElementById('archive-results-total-row').style.display = 'flex';
   const totalEl = document.getElementById('archive-results-total');
   totalEl.textContent = eur(total);
@@ -1425,23 +1519,28 @@ document.getElementById('archive-results-close').addEventListener('click', () =>
 
 document.getElementById('archive-results-recall-btn').addEventListener('click', () => {
   if (!currentArchiveResults) return;
-  const ids = [...document.querySelectorAll('#archive-results-list .archive-pick:checked')].map(cb => cb.dataset.id);
-  if (!ids.length) { showToast('Sélectionne au moins une fiche.'); return; }
-  if (currentArchiveResults.kind === 'actions') {
-    ids.forEach(id => {
-      const a = actions.find(x => x.id === id);
-      if (a && !recalledActions.some(r => r.id === id)) recalledActions.push(a);
+  const checked = [...document.querySelectorAll('#archive-results-list .archive-pick:checked')];
+  if (!checked.length) { showToast('Sélectionne au moins une fiche.'); return; }
+  if (currentArchiveResults.kind === 'adherents') {
+    checked.forEach(cb => {
+      const a = adherents.find(x => x.id === cb.dataset.id);
+      if (a && !recalledAdherents.some(r => r.id === a.id)) recalledAdherents.push(a);
     });
   } else {
-    ids.forEach(id => {
-      const a = adherents.find(x => x.id === id);
-      if (a && !recalledAdherents.some(r => r.id === id)) recalledAdherents.push(a);
+    checked.forEach(cb => {
+      if (cb.dataset.kind === 'facture') {
+        const f = factures.find(x => x.id === cb.dataset.id);
+        if (f && !recalledFactures.some(r => r.id === f.id)) recalledFactures.push(f);
+      } else {
+        const a = actions.find(x => x.id === cb.dataset.id);
+        if (a && !recalledActions.some(r => r.id === a.id)) recalledActions.push(a);
+      }
     });
   }
   document.getElementById('archive-results-modal').classList.remove('active');
   updateArchivesTabVisibility();
   renderRecalled();
-  showToast(`${ids.length} fiche(s) rappelée(s) — voir l'onglet "Archives".`);
+  showToast(`${checked.length} fiche(s) rappelée(s) — voir l'onglet "Archives".`);
 });
 
 document.getElementById('archive-results-pdf-btn').addEventListener('click', () => {
@@ -1454,28 +1553,49 @@ document.getElementById('archive-results-pdf-btn').addEventListener('click', () 
   const doc = new jsPDF();
   let y = 18;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(16);
-  doc.text(`Actions archivées ${currentArchiveResults.start}–${currentArchiveResults.end}`, 14, y); y += 7;
+  doc.text(`Actions & factures archivées ${currentArchiveResults.start}–${currentArchiveResults.end}`, 14, y); y += 7;
   doc.setFontSize(10); doc.setFont('helvetica', 'normal');
   doc.text('Amis des Écoles — ' + new Date().toLocaleDateString('fr-FR'), 14, y); y += 12;
-  let total = 0;
-  doc.setFont('helvetica', 'bold'); doc.text('Date', 14, y); doc.text('Action', 50, y); doc.text('Bénéfice', 196, y, { align: 'right' }); y += 3;
-  doc.setLineWidth(0.3); doc.line(14, y, 196, y); y += 6;
-  doc.setFont('helvetica', 'normal');
-  currentArchiveResults.matches.forEach(a => {
+
+  function sectionHeader(title) {
+    if (y > 270) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+    doc.text(title, 14, y); y += 7;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+  }
+  function row(left, right, bold) {
     if (y > 280) { doc.addPage(); y = 20; }
+    doc.setFont('helvetica', bold ? 'bold' : 'normal');
+    doc.text(String(left).slice(0, 85), 14, y);
+    doc.text(String(right), 196, y, { align: 'right' });
+    y += 7;
+  }
+
+  let total = 0;
+  const sortedActions = currentArchiveResults.actionMatches.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  sectionHeader('Actions');
+  if (!sortedActions.length) row('Aucune action', '');
+  sortedActions.forEach(a => {
     const benef = beneficeOf(a); total += benef;
     const dateStr = a.date ? new Date(a.date).toLocaleDateString('fr-FR') : '—';
-    doc.text(dateStr, 14, y);
-    doc.text((a.nom || '').slice(0, 55), 50, y);
-    doc.text(eur(benef), 196, y, { align: 'right' });
-    y += 7;
+    row(dateStr + ' — ' + (a.nom || ''), eur(benef));
   });
-  if (!currentArchiveResults.matches.length) { doc.text('Aucune action sur cette période.', 14, y); y += 7; }
+  y += 3;
+
+  const sortedFactures = currentArchiveResults.factureMatches.slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  sectionHeader('Factures');
+  if (!sortedFactures.length) row('Aucune facture', '');
+  sortedFactures.forEach(f => {
+    total -= (Number(f.montant) || 0);
+    const dateStr = f.date ? new Date(f.date).toLocaleDateString('fr-FR') : '—';
+    row(dateStr + ' — ' + (f.nom || '') + (f.numero ? ' (N° ' + f.numero + ')' : ''), '− ' + eur(f.montant));
+  });
+
   y += 3; doc.setLineWidth(0.5); doc.line(14, y, 196, y); y += 8;
   doc.setFont('helvetica', 'bold');
   doc.text('Total', 14, y);
   doc.text(eur(total), 196, y, { align: 'right' });
-  doc.save(`actions-archivees-${currentArchiveResults.start}-${currentArchiveResults.end}.pdf`);
+  doc.save(`archives-${currentArchiveResults.start}-${currentArchiveResults.end}.pdf`);
   showToast('PDF prêt — choisis où l\'enregistrer.');
 });
 
